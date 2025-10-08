@@ -19,17 +19,18 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- =============================================
 CREATE TABLE IF NOT EXISTS `users` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(255) NOT NULL,
-  `email` varchar(255) NOT NULL,
-  `phone` varchar(20) DEFAULT NULL,
-  `location` varchar(255) DEFAULT NULL,
-  `profession` varchar(100) DEFAULT NULL,
+  `dealership_name` varchar(255) NOT NULL,
+  `sap_code` char(10) NOT NULL,
+  `mobile_number` varchar(20) NOT NULL,
+  `email` varchar(255) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `email` (`email`),
-  INDEX `idx_email` (`email`),
-  INDEX `idx_created_at` (`created_at`)
+  UNIQUE KEY `sap_code` (`sap_code`),
+  INDEX `idx_sap_code` (`sap_code`),
+  INDEX `idx_mobile_number` (`mobile_number`),
+  INDEX `idx_created_at` (`created_at`),
+  CONSTRAINT `chk_sap_code_format` CHECK (CHAR_LENGTH(`sap_code`) = 10 AND `sap_code` REGEXP '^[0-9]{10}$')
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================
@@ -211,8 +212,9 @@ SELECT
     gd.*,
     u.filename as upload_filename,
     u.original_name as upload_original_name,
-    usr.name as user_name,
-    usr.email as user_email,
+    usr.dealership_name as user_dealership_name,
+    usr.sap_code as user_sap_code,
+    usr.mobile_number as user_mobile_number,
     COALESCE(s.share_count, 0) as total_shares,
     COALESCE(ar.session_count, 0) as ar_sessions
 FROM `generated_designs` gd
@@ -241,9 +243,9 @@ SELECT
     gd.created_at as design_created_at,
     u.filename as upload_filename,
     u.file_path as original_file_path,
-    usr.name as user_name,
-    usr.email as user_email,
-    usr.location as user_location
+    usr.dealership_name as user_dealership_name,
+    usr.sap_code as user_sap_code,
+    usr.mobile_number as user_mobile_number
 FROM `shares` s
 JOIN `generated_designs` gd ON s.design_id = gd.id
 JOIN `uploads` u ON gd.upload_id = u.id

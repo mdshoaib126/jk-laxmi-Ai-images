@@ -12,10 +12,9 @@ const UploadPage = () => {
   const [uploading, setUploading] = useState(false)
   const [showUserForm, setShowUserForm] = useState(false)
   const [userInfo, setUserInfo] = useState({
-    name: user?.name || '',
-    phone: user?.phone || '',
-    shopName: user?.shopName || '',
-    location: user?.location || ''
+    dealershipName: user?.dealershipName || '',
+    sapCode: user?.sapCode || '',
+    mobileNumber: user?.mobileNumber || ''
   })
 
   const handleUpload = async (formData) => {
@@ -28,7 +27,7 @@ const UploadPage = () => {
       setUploading(true)
 
       // Add user info to form data if available
-      if (userInfo.name || userInfo.phone || userInfo.shopName || userInfo.location) {
+      if (userInfo.dealershipName || userInfo.sapCode || userInfo.mobileNumber) {
         formData.append('userInfo', JSON.stringify(userInfo))
       }
 
@@ -62,6 +61,13 @@ const UploadPage = () => {
 
   const handleUserInfoSubmit = (e) => {
     e.preventDefault()
+    
+    // Validate SAP Code
+    if (userInfo.sapCode.length !== 10 || !/^\d{10}$/.test(userInfo.sapCode)) {
+      alert('SAP CODE must be exactly 10 digits')
+      return
+    }
+    
     updateUser(userInfo)
     setShowUserForm(false)
   }
@@ -105,7 +111,7 @@ const UploadPage = () => {
       </div>
 
       {/* User Info Section */}
-      {!user?.name && !showUserForm && (
+      {!user?.dealershipName && !showUserForm && (
         <div className="card p-6 bg-blue-50 border-blue-200">
           <div className="flex items-center justify-between">
             <div>
@@ -133,57 +139,52 @@ const UploadPage = () => {
             Your Information
           </h3>
           <form onSubmit={handleUserInfoSubmit} className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="form-label">
-                  Name *
-                </label>
-                <input
-                  type="text"
-                  value={userInfo.name}
-                  onChange={(e) => handleUserInfoChange('name', e.target.value)}
-                  className="form-input"
-                  placeholder="Your full name"
-                  required
-                />
-              </div>
-              <div>
-                <label className="form-label">
-                  Phone Number *
-                </label>
-                <input
-                  type="tel"
-                  value={userInfo.phone}
-                  onChange={(e) => handleUserInfoChange('phone', e.target.value)}
-                  className="form-input"
-                  placeholder="+91 9876543210"
-                  required
-                />
-              </div>
+            <div>
+              <label className="form-label">
+                Dealership Name *
+              </label>
+              <input
+                type="text"
+                value={userInfo.dealershipName}
+                onChange={(e) => handleUserInfoChange('dealershipName', e.target.value)}
+                className="form-input"
+                placeholder="Enter your dealership name"
+                required
+              />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="form-label">
-                  Shop Name
+                  SAP CODE *
                 </label>
                 <input
                   type="text"
-                  value={userInfo.shopName}
-                  onChange={(e) => handleUserInfoChange('shopName', e.target.value)}
+                  value={userInfo.sapCode}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 10)
+                    handleUserInfoChange('sapCode', value)
+                  }}
                   className="form-input"
-                  placeholder="e.g., ABC Hardware Store"
+                  placeholder="Enter 10-digit SAP code"
+                  pattern="\d{10}"
+                  maxLength="10"
+                  required
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Must be exactly 10 digits
+                </p>
               </div>
               <div>
                 <label className="form-label">
-                  Location
+                  Mobile Number *
                 </label>
                 <input
-                  type="text"
-                  value={userInfo.location}
-                  onChange={(e) => handleUserInfoChange('location', e.target.value)}
+                  type="tel"
+                  value={userInfo.mobileNumber}
+                  onChange={(e) => handleUserInfoChange('mobileNumber', e.target.value)}
                   className="form-input"
-                  placeholder="City, State"
+                  placeholder="+91 9876543210"
+                  required
                 />
               </div>
             </div>
