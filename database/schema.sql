@@ -158,10 +158,10 @@ CREATE TABLE IF NOT EXISTS `ar_sessions` (
   `feedback_comment` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `fk_ar_sessions_design` (`design_id`),
-  KEY `fk_ar_sessions_user` (`user_id`),
   INDEX `idx_created_at` (`created_at`),
   INDEX `idx_device_type` (`device_type`),
+  INDEX `idx_design_id` (`design_id`),
+  INDEX `idx_user_id` (`user_id`),
   CONSTRAINT `fk_ar_sessions_design` FOREIGN KEY (`design_id`) REFERENCES `generated_designs` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_ar_sessions_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
