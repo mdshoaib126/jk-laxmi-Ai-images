@@ -36,10 +36,9 @@ function App() {
     const createNewUser = () => {
       const newUser = {
         id: uuidv4(),
-        name: '',
-        phone: '',
-        shopName: '',
-        location: '',
+        dealershipName: '',
+        sapCode: '',
+        mobileNumber: '',
         createdAt: new Date().toISOString(),
         uploads: [],
         designs: []
@@ -88,11 +87,11 @@ function App() {
                 
               </div>
               
-              {user && user.name && (
+              {user && user.dealershipName && (
                 <div className="flex items-center text-sm text-gray-700">
-                  <span className="mr-2">Hello, {user.name}</span>
-                  {user.shopName && (
-                    <span className="text-xs text-gray-500">({user.shopName})</span>
+                  <span className="mr-2">Hello, {user.dealershipName}</span>
+                  {user.sapCode && (
+                    <span className="text-xs text-gray-500">({user.sapCode})</span>
                   )}
                 </div>
               )}
