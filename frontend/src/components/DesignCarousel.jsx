@@ -75,13 +75,11 @@ const LoadingComponent = () => {
           </div>
         </div>
 
-        {/* Setup GIF */}
+        {/* Loading Spinner */}
         <div className="mb-6">
-          <img 
-            src="/Setup.gif" 
-            alt="AI Design Process" 
-            className="w-32 h-32 mx-auto rounded-lg shadow-lg"
-          />
+          <div className="w-32 h-32 mx-auto flex items-center justify-center">
+            <div className="loading-spinner w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+          </div>
         </div>
 
         {/* Main Title */}
@@ -173,6 +171,21 @@ const paginationStyle = `
   
   .animate-shimmer {
     animation: shimmer 2s infinite;
+  }
+
+  /* Loading Spinner */
+  .loading-spinner {
+    border-width: 4px;
+    border-style: solid;
+    border-color: #dbeafe;
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
   }
 `
 
