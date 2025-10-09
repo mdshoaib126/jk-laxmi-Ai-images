@@ -160,9 +160,7 @@ CREATE TABLE IF NOT EXISTS `ar_sessions` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   INDEX `idx_created_at` (`created_at`),
-  INDEX `idx_device_type` (`device_type`),
-  INDEX `idx_design_id` (`design_id`),
-  INDEX `idx_user_id` (`user_id`)
+  INDEX `idx_device_type` (`device_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================
@@ -209,16 +207,29 @@ INSERT IGNORE INTO `app_settings` (`setting_key`, `setting_value`, `setting_type
 -- =============================================
 
 -- Add foreign key constraints for ar_sessions table
--- Ensure column types match exactly
+-- Using a compatible approach with explicit column attributes
 ALTER TABLE `ar_sessions` 
 MODIFY COLUMN `design_id` int(11) NOT NULL,
-MODIFY COLUMN `user_id` int(11) DEFAULT NULL;
+ADD INDEX `fk_ar_sessions_design_idx` (`design_id`);
 
 ALTER TABLE `ar_sessions` 
-ADD CONSTRAINT `fk_ar_sessions_design` FOREIGN KEY (`design_id`) REFERENCES `generated_designs` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+MODIFY COLUMN `user_id` int(11) DEFAULT NULL,
+ADD INDEX `fk_ar_sessions_user_idx` (`user_id`);
+
+-- Add foreign key constraints separately
+ALTER TABLE `ar_sessions` 
+ADD CONSTRAINT `fk_ar_sessions_design` 
+FOREIGN KEY (`design_id`) 
+REFERENCES `generated_designs` (`id`) 
+ON DELETE CASCADE 
+ON UPDATE CASCADE;
 
 ALTER TABLE `ar_sessions` 
-ADD CONSTRAINT `fk_ar_sessions_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ADD CONSTRAINT `fk_ar_sessions_user` 
+FOREIGN KEY (`user_id`) 
+REFERENCES `users` (`id`) 
+ON DELETE SET NULL 
+ON UPDATE CASCADE;
 
 -- =============================================
 -- Create views for common queries
