@@ -109,40 +109,35 @@ router.post('/', upload.single('image'), handleMulterError, async (req, res) => 
       const parsedUserInfo = typeof userInfo === 'string' ? JSON.parse(userInfo) : userInfo;
       console.log('Processing user info:', parsedUserInfo);
       
-      // Check if user exists by email (or create without email for now)
+      // Check if user exists by sap_code (unique identifier)
       const existingUser = await executeQuery(`
-        SELECT id FROM users WHERE name = ? AND phone = ? LIMIT 1
-      `, [parsedUserInfo.name, parsedUserInfo.phone]);
+        SELECT id FROM users WHERE sap_code = ? LIMIT 1
+      `, [parsedUserInfo.sapCode]);
       
       if (existingUser.length > 0) {
         dbUserId = existingUser[0].id;
         // Update existing user
         await executeQuery(`
           UPDATE users SET 
-          name = ?, 
-          phone = ?, 
-          shop_name = ?, 
-          location = ?, 
+          dealership_name = ?, 
+          mobile_number = ?, 
           updated_at = CURRENT_TIMESTAMP
           WHERE id = ?
         `, [
-          parsedUserInfo.name || null,
-          parsedUserInfo.phone || null,
-          parsedUserInfo.shopName || null,
-          parsedUserInfo.location || null,
+          parsedUserInfo.dealershipName || null,
+          parsedUserInfo.mobileNumber || null,
           dbUserId
         ]);
       } else {
         // Create new user
         const result = await executeQuery(`
-          INSERT INTO users (id, name, phone, shop_name, location) 
-          VALUES (?, ?, ?, ?, ?)
+          INSERT INTO users (id, dealership_name, sap_code, mobile_number) 
+          VALUES (?, ?, ?, ?)
         `, [
           userId,
-          parsedUserInfo.name || null,
-          parsedUserInfo.phone || null,
-          parsedUserInfo.shopName || null,
-          parsedUserInfo.location || null
+          parsedUserInfo.dealershipName || null,
+          parsedUserInfo.sapCode || null,
+          parsedUserInfo.mobileNumber || null
         ]);
         dbUserId = userId;
       }
@@ -154,7 +149,7 @@ router.post('/', upload.single('image'), handleMulterError, async (req, res) => 
     // Save upload record to database
     console.log('Saving upload to database with user_id:', dbUserId);
     const uploadResult = await executeQuery(`
-      INSERT INTO uploads (id, user_id, original_filename, filename, file_path, file_size, mime_type)
+      INSERT INTO uploads (id, user_id, original_name, filename, file_path, file_size, mime_type)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `, [
       uploadId,
@@ -213,32 +208,32 @@ router.get('/:userId', async (req, res) => {
     const uploads = await executeQuery(`
       SELECT 
         u.id as upload_id,
-        u.original_filename,
+        u.original_name,
         u.filename,
         u.file_path,
         u.file_size,
         u.mime_type,
-        u.upload_timestamp,
-        usr.name as user_name,
-        usr.shop_name
+        u.created_at,
+        usr.dealership_name as user_dealership_name,
+        usr.sap_code as user_sap_code
       FROM uploads u
       LEFT JOIN users usr ON u.user_id = usr.id
       WHERE u.user_id = ?
-      ORDER BY u.upload_timestamp DESC
+      ORDER BY u.created_at DESC
     `, [userId]);
 
     res.json({
       success: true,
       data: uploads.map(upload => ({
         uploadId: upload.upload_id,
-        originalName: upload.original_filename,
+        originalName: upload.original_name,
         filename: upload.filename,
         filePath: `/uploads/${upload.filename}`,
         fileSize: upload.file_size,
         mimeType: upload.mime_type,
-        uploadedAt: upload.upload_timestamp,
-        userName: upload.user_name,
-        shopName: upload.shop_name
+        uploadedAt: upload.created_at,
+        userDealershipName: upload.user_dealership_name,
+        userSapCode: upload.user_sap_code
       }))
     });
 

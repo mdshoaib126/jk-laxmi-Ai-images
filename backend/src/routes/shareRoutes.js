@@ -22,9 +22,9 @@ router.post('/', async (req, res) => {
         gd.id,
         gd.design_type,
         gd.filename,
-        u.original_filename,
-        usr.name,
-        usr.shop_name
+        u.original_name,
+        usr.dealership_name,
+        usr.sap_code
       FROM generated_designs gd
       LEFT JOIN uploads u ON gd.upload_id = u.id
       LEFT JOIN users usr ON gd.user_id = usr.id
@@ -43,8 +43,8 @@ router.post('/', async (req, res) => {
     // Log the share
     const shareId = uuidv4();
     await executeQuery(`
-      INSERT INTO shares (id, user_id, design_id, share_platform, contest_entry)
-      VALUES (?, ?, ?, ?, TRUE)
+      INSERT INTO shares (id, user_id, design_id, share_platform, share_type)
+      VALUES (?, ?, ?, ?, 'contest')
     `, [shareId, userId, designId, platform || 'unknown']);
 
     // Generate contest link and sharing content
@@ -52,7 +52,7 @@ router.post('/', async (req, res) => {
     
     const shareContent = {
       title: `Check out my ${design.design_type.replace('_', ' ')} façade design!`,
-      text: `I transformed my shop with JK Lakshmi Cement's AR design app! ${design.name ? `- ${design.name}` : ''} ${design.shop_name ? `at ${design.shop_name}` : ''}`,
+      text: `I transformed my shop with JK Lakshmi Cement's AR design app! ${design.dealership_name ? `- ${design.dealership_name}` : ''} ${design.sap_code ? `(${design.sap_code})` : ''}`,
       url: contestUrl,
       hashtags: ['JKLakshmi', 'FacadeDesign', 'ARDesign', 'CementDesign', 'ShopMakeover']
     };
@@ -81,8 +81,8 @@ router.post('/', async (req, res) => {
           filePath: `/generated/${design.generated_filename}`
         },
         userInfo: {
-          name: design.name,
-          shopName: design.shop_name
+          dealershipName: design.dealership_name,
+          sapCode: design.sap_code
         }
       }
     });
@@ -105,15 +105,15 @@ router.get('/contest/:shareId', async (req, res) => {
       SELECT 
         s.id as share_id,
         s.share_platform,
-        s.share_timestamp,
-        s.contest_entry,
+        s.shared_at,
         gd.design_type,
         gd.filename,
         gd.ai_prompt,
-        u.original_filename,
-        usr.name,
-        usr.shop_name,
-        usr.location
+        u.original_name,
+        u.filename as stored_filename,
+        usr.dealership_name,
+        usr.sap_code,
+        usr.mobile_number
       FROM shares s
       LEFT JOIN generated_designs gd ON s.design_id = gd.id
       LEFT JOIN uploads u ON gd.upload_id = u.id
@@ -135,22 +135,21 @@ router.get('/contest/:shareId', async (req, res) => {
       data: {
         shareId: share.share_id,
         platform: share.share_platform,
-        sharedAt: share.share_timestamp,
-        isContestEntry: share.contest_entry,
+        sharedAt: share.shared_at,
         design: {
           designType: share.design_type,
-          filename: share.generated_filename,
-          filePath: `/generated/${share.generated_filename}`,
-          prompt: share.prompt_used
+          filename: share.filename,
+          filePath: `/generated/${share.filename}`,
+          prompt: share.ai_prompt
         },
         originalImage: {
-          filename: share.original_filename,
-          filePath: `/uploads/${share.file_stored_name}`
+          filename: share.original_name,
+          filePath: `/uploads/${share.stored_filename}`
         },
         participant: {
-          name: share.name,
-          shopName: share.shop_name,
-          location: share.location
+          dealershipName: share.dealership_name,
+          sapCode: share.sap_code,
+          mobileNumber: share.mobile_number
         }
       }
     });
@@ -175,10 +174,9 @@ router.get('/user/:userId', async (req, res) => {
         s.id as share_id,
         s.design_id,
         s.share_platform,
-        s.share_timestamp,
-        s.contest_entry,
+        s.shared_at,
         gd.design_type,
-        gd.generated_filename
+        gd.filename
       FROM shares s
       LEFT JOIN generated_designs gd ON s.design_id = gd.id
       WHERE s.user_id = ?
@@ -192,10 +190,10 @@ router.get('/user/:userId', async (req, res) => {
     }
 
     if (contestOnly === 'true') {
-      query += ' AND s.contest_entry = TRUE';
+      query += ' AND s.share_type = "contest"';
     }
 
-    query += ' ORDER BY s.share_timestamp DESC';
+    query += ' ORDER BY s.shared_at DESC';
 
     const shares = await executeQuery(query, params);
 
@@ -205,12 +203,11 @@ router.get('/user/:userId', async (req, res) => {
         shareId: share.share_id,
         designId: share.design_id,
         platform: share.share_platform,
-        sharedAt: share.share_timestamp,
-        isContestEntry: share.contest_entry,
+        sharedAt: share.shared_at,
         design: {
           designType: share.design_type,
-          filename: share.generated_filename,
-          filePath: `/generated/${share.generated_filename}`
+          filename: share.filename,
+          filePath: `/generated/${share.filename}`
         },
         contestUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/contest/${share.share_id}`
       }))
@@ -232,17 +229,17 @@ router.get('/leaderboard', async (req, res) => {
 
     const leaderboard = await executeQuery(`
       SELECT 
-        usr.name,
-        usr.shop_name,
-        usr.location,
+        usr.dealership_name,
+        usr.sap_code,
+        usr.mobile_number,
         COUNT(s.id) as total_shares,
         COUNT(DISTINCT s.design_id) as unique_designs_shared,
         COUNT(DISTINCT s.share_platform) as platforms_used,
-        MAX(s.share_timestamp) as latest_share
+        MAX(s.shared_at) as latest_share
       FROM users usr
       INNER JOIN shares s ON usr.id = s.user_id
-      WHERE s.contest_entry = TRUE
-      GROUP BY usr.id, usr.name, usr.shop_name, usr.location
+      WHERE s.share_type = 'contest'
+      GROUP BY usr.id, usr.dealership_name, usr.sap_code, usr.mobile_number
       ORDER BY total_shares DESC, latest_share DESC
       LIMIT ?
     `, [parseInt(limit)]);
@@ -253,9 +250,9 @@ router.get('/leaderboard', async (req, res) => {
         leaderboard: leaderboard.map((entry, index) => ({
           rank: index + 1,
           participant: {
-            name: entry.name,
-            shopName: entry.shop_name,
-            location: entry.location
+            dealershipName: entry.dealership_name,
+            sapCode: entry.sap_code,
+            mobileNumber: entry.mobile_number
           },
           stats: {
             totalShares: entry.total_shares,
@@ -288,7 +285,7 @@ router.get('/stats', async (req, res) => {
         share_platform,
         COUNT(*) as shares_by_platform
       FROM shares
-      WHERE contest_entry = TRUE
+      WHERE share_type = 'contest'
       GROUP BY share_platform
     `);
 
@@ -298,7 +295,7 @@ router.get('/stats', async (req, res) => {
         COUNT(DISTINCT user_id) as unique_users,
         COUNT(DISTINCT design_id) as unique_designs
       FROM shares
-      WHERE contest_entry = TRUE
+      WHERE share_type = 'contest'
     `);
 
     res.json({

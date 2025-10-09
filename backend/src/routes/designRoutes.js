@@ -19,11 +19,11 @@ router.get('/:userId', async (req, res) => {
         gd.ai_prompt,
         gd.created_at,
         gd.processing_status,
-        u.original_filename,
+        u.original_name,
         u.filename as original_filename_stored,
-        u.upload_timestamp,
-        usr.name as user_name,
-        usr.shop_name
+        u.created_at as upload_created_at,
+        usr.dealership_name as user_dealership_name,
+        usr.sap_code as user_sap_code
       FROM generated_designs gd
       LEFT JOIN uploads u ON gd.upload_id = u.id
       LEFT JOIN users usr ON gd.user_id = usr.id
@@ -53,13 +53,13 @@ router.get('/:userId', async (req, res) => {
         acc[uploadId] = {
           uploadId,
           originalImage: {
-            filename: design.original_filename,
+            filename: design.original_name,
             filePath: `/uploads/${design.original_filename_stored}`,
-            uploadedAt: design.upload_timestamp
+            uploadedAt: design.upload_created_at
           },
           userInfo: {
-            name: design.user_name,
-            shopName: design.shop_name
+            dealershipName: design.user_dealership_name,
+            sapCode: design.user_sap_code
           },
           designs: []
         };
@@ -116,15 +116,14 @@ router.get('/detail/:designId', async (req, res) => {
         gd.ai_prompt,
         gd.created_at,
         gd.processing_status,
-        u.original_filename,
+        u.original_name,
         u.filename as original_filename_stored,
         u.file_size,
         u.mime_type,
-        u.upload_timestamp,
-        usr.name as user_name,
-        usr.phone,
-        usr.shop_name,
-        usr.location
+        u.created_at as upload_created_at,
+        usr.dealership_name as user_dealership_name,
+        usr.sap_code as user_sap_code,
+        usr.mobile_number as user_mobile_number
       FROM generated_designs gd
       LEFT JOIN uploads u ON gd.upload_id = u.id
       LEFT JOIN users usr ON gd.user_id = usr.id
@@ -153,17 +152,16 @@ router.get('/detail/:designId', async (req, res) => {
         generatedAt: design.created_at,
         isSelected: design.processing_status === 'completed',
         originalImage: {
-          filename: design.original_filename,
+          filename: design.original_name,
           filePath: `/uploads/${design.original_filename_stored}`,
           fileSize: design.file_size,
           mimeType: design.mime_type,
-          uploadedAt: design.upload_timestamp
+          uploadedAt: design.upload_created_at
         },
         userInfo: {
-          name: design.user_name,
-          phone: design.phone,
-          shopName: design.shop_name,
-          location: design.location
+          dealershipName: design.user_dealership_name,
+          sapCode: design.user_sap_code,
+          mobileNumber: design.user_mobile_number
         }
       }
     });
@@ -276,9 +274,6 @@ router.get('/stats/:userId', async (req, res) => {
 
     const stats = await executeQuery(`
       SELECT 
-        COUNT(*) as total_designs,
-        COUNT(DISTINCT upload_id) as total_uploads,
-
         design_type,
         COUNT(*) as count_by_type
       FROM generated_designs 
@@ -289,8 +284,7 @@ router.get('/stats/:userId', async (req, res) => {
     const totalStats = await executeQuery(`
       SELECT 
         COUNT(*) as total_designs,
-        COUNT(DISTINCT upload_id) as total_uploads,
-
+        COUNT(DISTINCT upload_id) as total_uploads
       FROM generated_designs 
       WHERE user_id = ?
     `, [userId]);
@@ -300,7 +294,6 @@ router.get('/stats/:userId', async (req, res) => {
       data: {
         totalDesigns: totalStats[0]?.total_designs || 0,
         totalUploads: totalStats[0]?.total_uploads || 0,
-        selectedDesigns: totalStats[0]?.selected_designs || 0,
         designsByType: stats.reduce((acc, stat) => {
           acc[stat.design_type] = stat.count_by_type;
           return acc;
