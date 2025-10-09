@@ -5,7 +5,7 @@ import { RefreshCw, Share2 } from 'lucide-react'
 import { UserContext } from '../App'
 import DesignCarousel from '../components/DesignCarousel'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://jk-lakshmi-api.expm.in'
 
 const PreviewPage = () => {
   const { uploadId } = useParams()
