@@ -213,36 +213,7 @@ MODIFY COLUMN `design_id` int(11) NOT NULL;
 
 ALTER TABLE `ar_sessions` 
 MODIFY COLUMN `user_id` int(11) DEFAULT NULL;
-
--- Add foreign key constraints separately
--- Note: fk_ar_sessions_design constraint removed due to compatibility issues
--- The design_id column still has an index for performance
-
  
-
--- =============================================
--- Create views for common queries
--- =============================================
- 
--- View: Contest entries
-CREATE OR REPLACE VIEW `contest_entries` AS
-SELECT 
-    s.*,
-    gd.design_type,
-    gd.file_path as design_file_path,
-    gd.created_at as design_created_at,
-    u.filename as upload_filename,
-    u.file_path as original_file_path,
-    usr.dealership_name as user_dealership_name,
-    usr.sap_code as user_sap_code,
-    usr.mobile_number as user_mobile_number
-FROM `shares` s
-JOIN `generated_designs` gd ON s.design_id = gd.id
-JOIN `uploads` u ON gd.upload_id = u.id
-LEFT JOIN `users` usr ON s.user_id = usr.id
-WHERE s.share_type = 'contest'
-AND s.`is_public` = TRUE
-ORDER BY s.votes DESC, s.likes DESC, s.shared_at DESC;
 
 -- =============================================
 -- Create triggers for data consistency
