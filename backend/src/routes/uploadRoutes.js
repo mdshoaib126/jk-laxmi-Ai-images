@@ -131,15 +131,14 @@ router.post('/', upload.single('image'), handleMulterError, async (req, res) => 
       } else {
         // Create new user
         const result = await executeQuery(`
-          INSERT INTO users (id, dealership_name, sap_code, mobile_number) 
-          VALUES (?, ?, ?, ?)
+          INSERT INTO users (dealership_name, sap_code, mobile_number) 
+          VALUES (?, ?, ?)
         `, [
-          userId,
           parsedUserInfo.dealershipName || null,
           parsedUserInfo.sapCode || null,
           parsedUserInfo.mobileNumber || null
         ]);
-        dbUserId = userId;
+        dbUserId = result.insertId;
       }
     }
 
