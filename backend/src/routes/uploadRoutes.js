@@ -142,16 +142,12 @@ router.post('/', upload.single('image'), handleMulterError, async (req, res) => 
       }
     }
 
-    // Generate upload ID
-    const uploadId = uuidv4();
-    
     // Save upload record to database
     console.log('Saving upload to database with user_id:', dbUserId);
     const uploadResult = await executeQuery(`
-      INSERT INTO uploads (id, user_id, original_name, filename, file_path, file_size, mime_type)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO uploads (user_id, original_name, filename, file_path, file_size, mime_type)
+      VALUES (?, ?, ?, ?, ?, ?)
     `, [
-      uploadId,
       dbUserId, // This can be null, which is fine
       req.file.originalname,
       req.file.filename,
@@ -160,6 +156,7 @@ router.post('/', upload.single('image'), handleMulterError, async (req, res) => 
       req.file.mimetype
     ]);
 
+    const uploadId = uploadResult.insertId;
     console.log('Upload saved successfully with ID:', uploadId);
 
     // Create thumbnail for faster loading
