@@ -241,7 +241,7 @@ LEFT JOIN `users` usr ON gd.user_id = usr.id
 LEFT JOIN (
     SELECT design_id, COUNT(*) as share_count 
     FROM `shares` 
-    WHERE is_public = TRUE 
+    WHERE `shares`.`is_public` = TRUE 
     GROUP BY design_id
 ) s ON gd.id = s.design_id
 LEFT JOIN (
@@ -269,7 +269,7 @@ JOIN `generated_designs` gd ON s.design_id = gd.id
 JOIN `uploads` u ON gd.upload_id = u.id
 LEFT JOIN `users` usr ON s.user_id = usr.id
 WHERE s.share_type = 'contest'
-AND s.is_public = TRUE
+AND s.`is_public` = TRUE
 ORDER BY s.votes DESC, s.likes DESC, s.shared_at DESC;
 
 -- =============================================
