@@ -209,20 +209,14 @@ INSERT IGNORE INTO `app_settings` (`setting_key`, `setting_value`, `setting_type
 -- Add foreign key constraints for ar_sessions table
 -- Using a compatible approach with explicit column attributes
 ALTER TABLE `ar_sessions` 
-MODIFY COLUMN `design_id` int(11) NOT NULL,
-ADD INDEX `fk_ar_sessions_design_idx` (`design_id`);
+MODIFY COLUMN `design_id` int(11) NOT NULL;
 
 ALTER TABLE `ar_sessions` 
-MODIFY COLUMN `user_id` int(11) DEFAULT NULL,
-ADD INDEX `fk_ar_sessions_user_idx` (`user_id`);
+MODIFY COLUMN `user_id` int(11) DEFAULT NULL;
 
 -- Add foreign key constraints separately
-ALTER TABLE `ar_sessions` 
-ADD CONSTRAINT `fk_ar_sessions_design` 
-FOREIGN KEY (`design_id`) 
-REFERENCES `generated_designs` (`id`) 
-ON DELETE CASCADE 
-ON UPDATE CASCADE;
+-- Note: fk_ar_sessions_design constraint removed due to compatibility issues
+-- The design_id column still has an index for performance
 
 ALTER TABLE `ar_sessions` 
 ADD CONSTRAINT `fk_ar_sessions_user` 
