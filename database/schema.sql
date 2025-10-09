@@ -185,7 +185,7 @@ CREATE TABLE IF NOT EXISTS `app_settings` (
 -- =============================================
 -- Insert default application settings
 -- =============================================
-INSERT INTO `app_settings` (`setting_key`, `setting_value`, `setting_type`, `description`, `is_public`) VALUES
+INSERT IGNORE INTO `app_settings` (`setting_key`, `setting_value`, `setting_type`, `description`, `is_public`) VALUES
 ('app_name', 'JK Lakshmi AR Facade Designer', 'string', 'Application name', TRUE),
 ('app_version', '1.0.0', 'string', 'Current application version', TRUE),
 ('max_upload_size', '10485760', 'number', 'Maximum file upload size in bytes', FALSE),
