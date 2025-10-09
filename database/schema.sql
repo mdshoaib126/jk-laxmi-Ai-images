@@ -218,12 +218,7 @@ MODIFY COLUMN `user_id` int(11) DEFAULT NULL;
 -- Note: fk_ar_sessions_design constraint removed due to compatibility issues
 -- The design_id column still has an index for performance
 
-ALTER TABLE `ar_sessions` 
-ADD CONSTRAINT `fk_ar_sessions_user` 
-FOREIGN KEY (`user_id`) 
-REFERENCES `users` (`id`) 
-ON DELETE SET NULL 
-ON UPDATE CASCADE;
+ 
 
 -- =============================================
 -- Create views for common queries
