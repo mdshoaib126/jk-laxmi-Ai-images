@@ -19,11 +19,19 @@ router.post('/', async (req, res) => {
     }
 
     // Get the upload record
+    console.log('Looking for upload with ID:', uploadId, 'and user ID:', userId);
     const uploads = await executeQuery(`
       SELECT * FROM uploads WHERE id = ? AND user_id = ?
     `, [uploadId, userId]);
 
+    console.log('Found uploads:', uploads.length);
     if (uploads.length === 0) {
+      // Try to find upload without user_id constraint to debug
+      const allUploads = await executeQuery(`
+        SELECT id, user_id FROM uploads WHERE id = ?
+      `, [uploadId]);
+      console.log('Upload exists with different user_id:', allUploads);
+      
       return res.status(404).json({
         error: 'Upload not found',
         message: 'The specified upload was not found'
@@ -34,10 +42,10 @@ router.post('/', async (req, res) => {
     
     // Define design types if not provided
     const typesToGenerate = designTypes || [
-      'modern_premium',
-      'trust_heritage', 
-      'eco_smart',
-      'festive'
+      'modern',
+      'classical', 
+      'industrial',
+      'eco_friendly'
     ];
 
     const generatedDesigns = [];
@@ -62,13 +70,11 @@ router.post('/', async (req, res) => {
           );
 
           // Save to database
-          const designId = uuidv4();
           const result = await executeQuery(`
             INSERT INTO generated_designs 
-            (id, upload_id, user_id, design_type, filename, file_path, ai_prompt, processing_status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (upload_id, user_id, design_type, filename, file_path, ai_prompt, processing_status)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
           `, [
-            designId,
             uploadId,
             userId,
             designType,
@@ -77,6 +83,8 @@ router.post('/', async (req, res) => {
             generatedImageData.prompt || '',
             'completed'
           ]);
+          
+          const designId = result.insertId;
           generatedDesigns.push({
             designId,
             designType,
