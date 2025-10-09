@@ -209,8 +209,15 @@ INSERT IGNORE INTO `app_settings` (`setting_key`, `setting_value`, `setting_type
 -- =============================================
 
 -- Add foreign key constraints for ar_sessions table
+-- Ensure column types match exactly
 ALTER TABLE `ar_sessions` 
-ADD CONSTRAINT `fk_ar_sessions_design` FOREIGN KEY (`design_id`) REFERENCES `generated_designs` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+MODIFY COLUMN `design_id` int(11) NOT NULL,
+MODIFY COLUMN `user_id` int(11) DEFAULT NULL;
+
+ALTER TABLE `ar_sessions` 
+ADD CONSTRAINT `fk_ar_sessions_design` FOREIGN KEY (`design_id`) REFERENCES `generated_designs` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE `ar_sessions` 
 ADD CONSTRAINT `fk_ar_sessions_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- =============================================
