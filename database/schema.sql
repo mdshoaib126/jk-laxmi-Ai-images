@@ -203,12 +203,7 @@ INSERT IGNORE INTO `app_settings` (`setting_key`, `setting_value`, `setting_type
 -- =============================================
 -- Create indexes for better performance
 -- =============================================
-
--- Additional indexes for complex queries
-CREATE INDEX `idx_designs_user_design_type` ON `generated_designs` (`user_id`, `design_type`);
-CREATE INDEX `idx_designs_status_created_at` ON `generated_designs` (`processing_status`, `created_at`);
-CREATE INDEX `idx_uploads_user_created_at` ON `uploads` (`user_id`, `created_at`);
-
+ 
 -- =============================================
 -- Add foreign key constraints after table creation
 -- =============================================
