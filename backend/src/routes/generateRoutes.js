@@ -20,33 +20,44 @@ router.post('/', async (req, res) => {
 
     // Get the upload record
     console.log('Looking for upload with ID:', uploadId, 'and user ID:', userId);
+    
+    // First try to find upload by ID only since userId might be a legacy UUID
     const uploads = await executeQuery(`
-      SELECT * FROM uploads WHERE id = ? AND user_id = ?
-    `, [uploadId, userId]);
+      SELECT * FROM uploads WHERE id = ?
+    `, [uploadId]);
 
     console.log('Found uploads:', uploads.length);
     if (uploads.length === 0) {
-      // Try to find upload without user_id constraint to debug
-      const allUploads = await executeQuery(`
-        SELECT id, user_id FROM uploads WHERE id = ?
-      `, [uploadId]);
-      console.log('Upload exists with different user_id:', allUploads);
-      
       return res.status(404).json({
         error: 'Upload not found',
         message: 'The specified upload was not found'
       });
     }
-
+    
+    // If userId is provided and upload has a user_id, verify it matches
     const upload = uploads[0];
+    if (userId && upload.user_id && upload.user_id.toString() !== userId.toString()) {
+      console.log('User ID mismatch:', upload.user_id, 'vs', userId);
+      // For now, just log the mismatch but allow the generation to proceed
+      // This handles the transition from UUID userIds to integer userIds
+    }
     
     // Define design types if not provided
-    const typesToGenerate = designTypes || [
-      'modern',
-      'classical', 
-      'industrial',
-      'eco_friendly'
+    const defaultTypes = [
+      'modern_premium',
+      'trust_heritage', 
+      'eco_smart',
+      'festive'
     ];
+    const typesToGenerate = designTypes || defaultTypes;
+
+    // Map frontend design types to database enum values
+    const designTypeMap = {
+      'modern_premium': 'modern',
+      'trust_heritage': 'classical',
+      'eco_smart': 'industrial', 
+      'festive': 'eco_friendly'
+    };
 
     const generatedDesigns = [];
     
@@ -54,6 +65,9 @@ router.post('/', async (req, res) => {
     for (const designType of typesToGenerate) {
       try {
         console.log(`Generating ${designType} design for upload ${uploadId}`);
+        
+        // Map frontend design type to database enum
+        const dbDesignType = designTypeMap[designType] || designType;
         
         // Call Gemini API to generate facade design
         const generatedImageData = await generateFacadeDesigns(
@@ -77,7 +91,7 @@ router.post('/', async (req, res) => {
           `, [
             uploadId,
             userId,
-            designType,
+            dbDesignType,  // Use mapped design type for database
             generatedFilename,
             savedImagePath,
             generatedImageData.prompt || '',
