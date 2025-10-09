@@ -87,7 +87,15 @@ export async function saveGeneratedImage(imageData, filename) {
     // Optimize the saved image
     await optimizeImage(filePath);
     
-    return filePath;
+    // Get image dimensions after saving
+    const metadata = await sharp(filePath).metadata();
+    
+    return {
+      filePath,
+      fileSize: imageBuffer.length,
+      width: metadata.width || null,
+      height: metadata.height || null
+    };
   } catch (error) {
     console.error('Save generated image error:', error);
     throw new Error('Failed to save generated image');

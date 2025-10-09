@@ -72,7 +72,7 @@ router.post('/', async (req, res) => {
         if (generatedImageData && generatedImageData.imageData) {
           // Save the generated image
           const generatedFilename = `${designType}_${uploadId}_${Date.now()}.png`;
-          const savedImagePath = await saveGeneratedImage(
+          const savedImageResult = await saveGeneratedImage(
             generatedImageData.imageData,
             generatedFilename
           );
@@ -80,14 +80,17 @@ router.post('/', async (req, res) => {
           // Save to database
           const result = await executeQuery(`
             INSERT INTO generated_designs 
-            (upload_id, user_id, design_type, filename, file_path, ai_prompt, processing_status)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (upload_id, user_id, design_type, filename, file_path, file_size, width, height, ai_prompt, processing_status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `, [
             uploadId,
             upload.user_id,  // Use actual integer user_id from upload
             dbDesignType,  // Use mapped design type for database
             generatedFilename,
-            savedImagePath,
+            savedImageResult.filePath,
+            savedImageResult.fileSize,
+            savedImageResult.width,
+            savedImageResult.height,
             generatedImageData.prompt || '',
             'completed'
           ]);
@@ -195,7 +198,7 @@ router.post('/single', async (req, res) => {
 
     // Save the generated image
     const generatedFilename = `${designType}_${uploadId}_${Date.now()}.png`;
-    const savedImagePath = await saveGeneratedImage(
+    const savedImageResult = await saveGeneratedImage(
       generatedImageData.imageData,
       generatedFilename
     );
@@ -203,15 +206,19 @@ router.post('/single', async (req, res) => {
     // Save to database - use the actual user_id from the upload record
     const result = await executeQuery(`
       INSERT INTO generated_designs 
-      (upload_id, user_id, design_type, filename, file_path, ai_prompt)
-      VALUES (?, ?, ?, ?, ?, ?)
+      (upload_id, user_id, design_type, filename, file_path, file_size, width, height, ai_prompt, processing_status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       uploadId,
       upload.user_id, // Use the user_id from the upload record (integer or null)
       designType,
       generatedFilename,
-      savedImagePath,
-      generatedImageData.prompt || ''
+      savedImageResult.filePath,
+      savedImageResult.fileSize,
+      savedImageResult.width,
+      savedImageResult.height,
+      generatedImageData.prompt || '',
+      'completed'
     ]);
 
     const designId = result.insertId;
