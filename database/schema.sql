@@ -162,9 +162,7 @@ CREATE TABLE IF NOT EXISTS `ar_sessions` (
   INDEX `idx_created_at` (`created_at`),
   INDEX `idx_device_type` (`device_type`),
   INDEX `idx_design_id` (`design_id`),
-  INDEX `idx_user_id` (`user_id`),
-  CONSTRAINT `fk_ar_sessions_design` FOREIGN KEY (`design_id`) REFERENCES `generated_designs` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `fk_ar_sessions_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+  INDEX `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================
@@ -263,6 +261,15 @@ CREATE INDEX `idx_designs_user_type` ON `generated_designs` (`user_id`, `design_
 CREATE INDEX `idx_designs_status_created` ON `generated_designs` (`processing_status`, `created_at`);
 CREATE INDEX `idx_shares_public_featured` ON `shares` (`is_public`, `is_featured`);
 CREATE INDEX `idx_uploads_user_created` ON `uploads` (`user_id`, `created_at`);
+
+-- =============================================
+-- Add foreign key constraints after table creation
+-- =============================================
+
+-- Add foreign key constraints for ar_sessions table
+ALTER TABLE `ar_sessions` 
+ADD CONSTRAINT `fk_ar_sessions_design` FOREIGN KEY (`design_id`) REFERENCES `generated_designs` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+ADD CONSTRAINT `fk_ar_sessions_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- =============================================
 -- Create triggers for data consistency
