@@ -207,7 +207,6 @@ INSERT IGNORE INTO `app_settings` (`setting_key`, `setting_value`, `setting_type
 -- Additional indexes for complex queries
 CREATE INDEX `idx_designs_user_type` ON `generated_designs` (`user_id`, `design_type`);
 CREATE INDEX `idx_designs_status_created` ON `generated_designs` (`processing_status`, `created_at`);
-CREATE INDEX `idx_shares_public_featured` ON `shares` (`is_public`, `is_featured`);
 CREATE INDEX `idx_uploads_user_created` ON `uploads` (`user_id`, `created_at`);
 
 -- =============================================
