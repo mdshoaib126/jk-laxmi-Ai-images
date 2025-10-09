@@ -1,5 +1,4 @@
 import express from 'express';
-import { v4 as uuidv4 } from 'uuid';
 import { executeQuery } from '../config/db.js';
 import { generateFacadeDesigns } from '../services/geminiService.js';
 import { saveGeneratedImage } from '../services/imageUtils.js';
@@ -21,7 +20,7 @@ router.post('/', async (req, res) => {
     // Get the upload record
     console.log('Looking for upload with ID:', uploadId, 'and user ID:', userId);
     
-    // First try to find upload by ID only since userId might be a legacy UUID
+    // Find upload by ID - userId matching will be handled during generation
     const uploads = await executeQuery(`
       SELECT * FROM uploads WHERE id = ?
     `, [uploadId]);
@@ -34,13 +33,8 @@ router.post('/', async (req, res) => {
       });
     }
     
-    // If userId is provided and upload has a user_id, verify it matches
     const upload = uploads[0];
-    if (userId && upload.user_id && upload.user_id.toString() !== userId.toString()) {
-      console.log('User ID mismatch:', upload.user_id, 'vs', userId);
-      // For now, just log the mismatch but allow the generation to proceed
-      // This handles the transition from UUID userIds to integer userIds
-    }
+    console.log('Using upload user_id for generated_designs:', upload.user_id);
     
     // Define design types if not provided
     const defaultTypes = [
@@ -90,7 +84,7 @@ router.post('/', async (req, res) => {
             VALUES (?, ?, ?, ?, ?, ?, ?)
           `, [
             uploadId,
-            userId,
+            upload.user_id,  // Use actual integer user_id from upload
             dbDesignType,  // Use mapped design type for database
             generatedFilename,
             savedImagePath,
@@ -126,7 +120,7 @@ router.post('/', async (req, res) => {
       message: `Successfully generated ${generatedDesigns.length} facade designs`,
       data: {
         uploadId,
-        userId,
+        userId: upload.user_id, // Return the actual database user_id
         originalImage: `/uploads/${upload.filename}`,
         generatedDesigns
       }
@@ -163,9 +157,19 @@ router.post('/single', async (req, res) => {
     }
 
     // Get the upload record
-    const uploads = await executeQuery(`
-      SELECT * FROM uploads WHERE id = ? AND user_id = ?
-    `, [uploadId, userId]);
+    // If userId is provided and is a valid integer, verify ownership; otherwise just find by uploadId
+    let uploads;
+    if (userId && !isNaN(userId)) {
+      // Valid integer user ID - verify ownership
+      uploads = await executeQuery(`
+        SELECT * FROM uploads WHERE id = ? AND user_id = ?
+      `, [uploadId, userId]);
+    } else {
+      // Anonymous upload or invalid userId - find by uploadId only
+      uploads = await executeQuery(`
+        SELECT * FROM uploads WHERE id = ?
+      `, [uploadId]);
+    }
 
     if (uploads.length === 0) {
       return res.status(404).json({
@@ -196,14 +200,14 @@ router.post('/single', async (req, res) => {
       generatedFilename
     );
 
-    // Save to database
+    // Save to database - use the actual user_id from the upload record
     const result = await executeQuery(`
       INSERT INTO generated_designs 
       (upload_id, user_id, design_type, filename, file_path, ai_prompt)
       VALUES (?, ?, ?, ?, ?, ?)
     `, [
       uploadId,
-      userId,
+      upload.user_id, // Use the user_id from the upload record (integer or null)
       designType,
       generatedFilename,
       savedImagePath,
@@ -218,7 +222,7 @@ router.post('/single', async (req, res) => {
       data: {
         designId,
         uploadId,
-        userId,
+        userId: upload.user_id, // Return the actual database user_id
         designType,
         filename: generatedFilename,
         filePath: `/generated/${generatedFilename}`,

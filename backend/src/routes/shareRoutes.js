@@ -41,14 +41,16 @@ router.post('/', async (req, res) => {
     const design = designs[0];
 
     // Log the share
-    const shareId = uuidv4();
-    await executeQuery(`
-      INSERT INTO shares (id, user_id, design_id, share_platform, share_type)
-      VALUES (?, ?, ?, ?, 'contest')
-    `, [shareId, userId, designId, platform || 'unknown']);
+    const shareCode = uuidv4();
+    const result = await executeQuery(`
+      INSERT INTO shares (user_id, design_id, share_platform, share_type, share_code)
+      VALUES (?, ?, ?, 'contest', ?)
+    `, [userId, designId, platform || 'unknown', shareCode]);
+    
+    const shareId = result.insertId;
 
     // Generate contest link and sharing content
-    const contestUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/contest/${shareId}`;
+    const contestUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/contest/${shareCode}`;
     
     const shareContent = {
       title: `Check out my ${design.design_type.replace('_', ' ')} façade design!`,
@@ -71,6 +73,7 @@ router.post('/', async (req, res) => {
       message: 'Share logged successfully',
       data: {
         shareId,
+        shareCode,
         contestUrl,
         shareContent,
         sharingUrls,
@@ -96,14 +99,15 @@ router.post('/', async (req, res) => {
   }
 });
 
-// GET /api/share/contest/:shareId - Get contest entry details
-router.get('/contest/:shareId', async (req, res) => {
+// GET /api/share/contest/:shareCode - Get contest entry details
+router.get('/contest/:shareCode', async (req, res) => {
   try {
-    const { shareId } = req.params;
+    const { shareCode } = req.params;
 
     const shares = await executeQuery(`
       SELECT 
         s.id as share_id,
+        s.share_code,
         s.share_platform,
         s.shared_at,
         gd.design_type,
@@ -118,8 +122,8 @@ router.get('/contest/:shareId', async (req, res) => {
       LEFT JOIN generated_designs gd ON s.design_id = gd.id
       LEFT JOIN uploads u ON gd.upload_id = u.id
       LEFT JOIN users usr ON s.user_id = usr.id
-      WHERE s.id = ?
-    `, [shareId]);
+      WHERE s.share_code = ?
+    `, [shareCode]);
 
     if (shares.length === 0) {
       return res.status(404).json({
@@ -134,6 +138,7 @@ router.get('/contest/:shareId', async (req, res) => {
       success: true,
       data: {
         shareId: share.share_id,
+        shareCode: share.share_code,
         platform: share.share_platform,
         sharedAt: share.shared_at,
         design: {
@@ -173,6 +178,7 @@ router.get('/user/:userId', async (req, res) => {
       SELECT 
         s.id as share_id,
         s.design_id,
+        s.share_code,
         s.share_platform,
         s.shared_at,
         gd.design_type,
@@ -201,6 +207,7 @@ router.get('/user/:userId', async (req, res) => {
       success: true,
       data: shares.map(share => ({
         shareId: share.share_id,
+        shareCode: share.share_code,
         designId: share.design_id,
         platform: share.share_platform,
         sharedAt: share.shared_at,
@@ -209,7 +216,7 @@ router.get('/user/:userId', async (req, res) => {
           filename: share.filename,
           filePath: `/generated/${share.filename}`
         },
-        contestUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/contest/${share.share_id}`
+        contestUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/contest/${share.share_code}`
       }))
     });
 

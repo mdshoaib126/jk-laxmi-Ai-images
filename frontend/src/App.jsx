@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { v4 as uuidv4 } from 'uuid'
 
 // Pages
 import UploadPage from './pages/UploadPage'
@@ -35,7 +34,7 @@ function App() {
 
     const createNewUser = () => {
       const newUser = {
-        id: uuidv4(),
+        id: null, // Will be set by backend after upload
         dealershipName: '',
         sapCode: '',
         mobileNumber: '',

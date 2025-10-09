@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 import { executeQuery } from '../config/db.js';
 import { config } from '../config/env.js';
 import { validateImage, createThumbnail } from '../services/imageUtils.js';
@@ -14,7 +14,8 @@ const storage = multer.diskStorage({
     cb(null, config.upload.uploadDir);
   },
   filename: (req, file, cb) => {
-    const uniqueName = `${uuidv4()}-${Date.now()}${path.extname(file.originalname)}`;
+    const randomId = crypto.randomBytes(16).toString('hex');
+    const uniqueName = `${randomId}-${Date.now()}${path.extname(file.originalname)}`;
     cb(null, uniqueName);
   }
 });
@@ -167,7 +168,7 @@ router.post('/', upload.single('image'), handleMulterError, async (req, res) => 
       message: 'Image uploaded successfully',
       data: {
         uploadId,
-        userId: dbUserId || userId,
+        userId: dbUserId, // Return the database user ID (integer) or null
         originalName: req.file.originalname,
         filename: req.file.filename,
         filePath: `/uploads/${req.file.filename}`,

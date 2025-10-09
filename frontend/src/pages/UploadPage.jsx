@@ -42,6 +42,7 @@ const UploadPage = () => {
         const uploadData = response.data.data
         updateUser({
           ...userInfo,
+          id: uploadData.userId || user.id, // Use database user ID if available, keep original ID if null
           uploads: [...(user.uploads || []), uploadData]
         })
 
