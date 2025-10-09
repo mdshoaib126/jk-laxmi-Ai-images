@@ -223,35 +223,7 @@ MODIFY COLUMN `user_id` int(11) DEFAULT NULL;
 -- =============================================
 -- Create views for common queries
 -- =============================================
-
--- View: Popular designs
-CREATE OR REPLACE VIEW `popular_designs` AS
-SELECT 
-    gd.*,
-    u.filename as upload_filename,
-    u.original_name as upload_original_name,
-    usr.dealership_name as user_dealership_name,
-    usr.sap_code as user_sap_code,
-    usr.mobile_number as user_mobile_number,
-    COALESCE(s.share_count, 0) as total_shares,
-    COALESCE(ar.session_count, 0) as ar_sessions
-FROM `generated_designs` gd
-LEFT JOIN `uploads` u ON gd.upload_id = u.id
-LEFT JOIN `users` usr ON gd.user_id = usr.id
-LEFT JOIN (
-    SELECT design_id, COUNT(*) as share_count 
-    FROM `shares` 
-    WHERE `shares`.`is_public` = TRUE 
-    GROUP BY design_id
-) s ON gd.id = s.design_id
-LEFT JOIN (
-    SELECT design_id, COUNT(*) as session_count 
-    FROM `ar_sessions` 
-    GROUP BY design_id
-) ar ON gd.id = ar.design_id
-WHERE gd.processing_status = 'completed'
-ORDER BY (gd.view_count + COALESCE(s.share_count, 0) * 5 + COALESCE(ar.session_count, 0) * 3) DESC;
-
+ 
 -- View: Contest entries
 CREATE OR REPLACE VIEW `contest_entries` AS
 SELECT 
