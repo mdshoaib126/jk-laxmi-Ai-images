@@ -192,7 +192,7 @@ const InteriorPreviewPage = () => {
               <div className="flex-shrink-0">
                 <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
                   <img
-                    src={`${API_BASE_URL}${storefrontDesign.filePath}`}
+                    src={`${storefrontDesign.filePath}`}
                     alt="Selected storefront design"
                     className="w-full h-full object-cover"
                   />

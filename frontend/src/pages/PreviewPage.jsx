@@ -177,18 +177,7 @@ const PreviewPage = () => {
         </p>
       </div>
 
-      {/* Navigation Breadcrumb */}
-      <div className="flex items-center space-x-2 text-sm text-gray-500">
-        <button onClick={() => navigate('/upload')} className="hover:text-gray-700">
-          Upload
-        </button>
-        <span>›</span>
-        <span className="text-gray-900 font-medium">Select Storefront</span>
-        <span>›</span>
-        <span className="text-gray-400">Interior Design</span>
-        <span>›</span>
-        <span className="text-gray-400">Contest Entry</span>
-      </div>
+       
 
       {/* Design Carousel */}
       <DesignCarousel
@@ -215,15 +204,7 @@ const PreviewPage = () => {
             </div>
             
             <div className="flex flex-row space-x-4 justify-center">
-              <button
-                onClick={handleRegenerateDesigns}
-                disabled={generating}
-                className="flex items-center space-x-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-all disabled:opacity-50"
-              >
-                <RefreshCw className={`w-5 h-5 ${generating ? 'animate-spin' : ''}`} />
-                <span>Generate New Designs</span>
-              </button>
-              
+                
               {selectedDesign && (
                 <button
                   onClick={handleNext}
@@ -240,22 +221,7 @@ const PreviewPage = () => {
 
       {/* Design Details */}
        
-
-      {/* Tips for Better Results */}
-      <div className="card p-6 bg-blue-50 border-blue-200">
-        <h3 className="font-semibold text-blue-900 mb-3">💡 Pro Tips</h3>
-        <div className="grid md:grid-cols-2 gap-4 text-sm text-blue-800">
-           
-          <div>
-            <h4 className="font-medium mb-2">Contest Tips:</h4>
-            <ul className="space-y-1">
-              <li>Share on multiple platforms</li>
-              <li>Use relevant hashtags</li>
-              <li>Tag friends and JK Lakshmi</li>
-            </ul>
-          </div>
-        </div>
-      </div>
+ 
     </div>
   )
 }
