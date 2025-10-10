@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Edit2 } from 'lucide-react'
+import axios from 'axios'
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
 // Pages
 import UploadPage from './pages/UploadPage'
@@ -17,6 +20,7 @@ function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showEditForm, setShowEditForm] = useState(false)
+  const [hasSubmission, setHasSubmission] = useState(false)
 
   useEffect(() => {
     // Initialize user from localStorage or create new user
@@ -56,6 +60,27 @@ function App() {
     initializeUser()
   }, [])
 
+  // Check submission status when user changes
+  useEffect(() => {
+    if (user?.id) {
+      checkUserSubmissionStatus()
+    }
+  }, [user?.id])
+
+  const checkUserSubmissionStatus = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/contest/user-submissions/${user.id}`)
+      if (response.data.success && response.data.data && response.data.data.length > 0) {
+        setHasSubmission(true)
+      } else {
+        setHasSubmission(false)
+      }
+    } catch (error) {
+      console.log('No submissions found for user:', error.message)
+      setHasSubmission(false)
+    }
+  }
+
   const updateUser = (updates) => {
     const updatedUser = { ...user, ...updates }
     console.log('Updating user:', { current: user, updates, result: updatedUser })
@@ -79,7 +104,7 @@ function App() {
   }
 
   return (
-    <UserContext.Provider value={{ user, updateUser, triggerEditForm, showEditForm, setShowEditForm }}>
+    <UserContext.Provider value={{ user, updateUser, triggerEditForm, showEditForm, setShowEditForm, hasSubmission, setHasSubmission }}>
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50">
         {/* Header */}
         <header className="bg-white  shadow-sm border-b-2 border-red-100">
@@ -103,12 +128,15 @@ function App() {
                   {user.sapCode && (
                     <span className="text-xs text-gray-500">({user.sapCode})</span>
                   )}
-                  <Edit2 
-                    onClick={triggerEditForm}
-                    className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer transition-colors"
-                    style={{ marginLeft: '15px' }}
-                    title="Edit Details"
-                  />
+                  {!hasSubmission && (
+                    <Edit2 
+                      onClick={triggerEditForm}
+                      className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer transition-colors"
+                      style={{ marginLeft: '15px' }}
+                      title="Edit Details"
+                    />
+                  )}
+                  
                 </div>
               )}
             </div>

@@ -24,7 +24,7 @@ const getImageUrl = (filePath) => {
 const FinalSubmissionPage = () => {
   const { storefrontDesignId, interiorDesignId } = useParams()
   const navigate = useNavigate()
-  const { user } = useContext(UserContext)
+  const { user, setHasSubmission } = useContext(UserContext)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [storefrontDesign, setStorefrontDesign] = useState(null)
@@ -55,6 +55,7 @@ const FinalSubmissionPage = () => {
       if (response.data.success && response.data.data) {
         // Submission already exists
         setSubmissionData(response.data.data)
+        setHasSubmission(true) // Update global state to hide edit button
       }
     } catch (error) {
       // No existing submission found, that's okay
@@ -115,6 +116,7 @@ const FinalSubmissionPage = () => {
 
       if (response.data.success) {
         setSubmissionData(response.data.data)
+        setHasSubmission(true) // Update global state to hide edit button
       } else {
         throw new Error(response.data.message || 'Submission failed')
       }

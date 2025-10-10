@@ -7,9 +7,10 @@ import ImageUploader from '../components/ImageUploader'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
 const UploadPage = () => {
-  const { user, updateUser, showEditForm, setShowEditForm } = useContext(UserContext)
+  const { user, updateUser, showEditForm, setShowEditForm, hasSubmission, setHasSubmission } = useContext(UserContext)
   const navigate = useNavigate()
   const [uploading, setUploading] = useState(false)
+  const [checkingSubmission, setCheckingSubmission] = useState(true)
   // Check if user already has complete info to skip the form
   const [formSubmitted, setFormSubmitted] = useState(
     user?.dealershipName && user?.sapCode && user?.mobileNumber
@@ -20,6 +21,33 @@ const UploadPage = () => {
     mobileNumber: user?.mobileNumber || ''
   })
   const [showTermsModal, setShowTermsModal] = useState(false)
+
+  // Check if user has any existing contest submissions
+  useEffect(() => {
+    if (user?.id) {
+      checkExistingSubmissions()
+    } else {
+      setCheckingSubmission(false)
+    }
+  }, [user?.id])
+
+  const checkExistingSubmissions = async () => {
+    try {
+      setCheckingSubmission(true)
+      const response = await axios.get(`${API_BASE_URL}/api/contest/user-submissions/${user.id}`)
+      
+      if (response.data.success && response.data.data && response.data.data.length > 0) {
+        setHasSubmission(true)
+      } else {
+        setHasSubmission(false)
+      }
+    } catch (error) {
+      console.log('No submissions found or error checking submissions:', error.message)
+      setHasSubmission(false)
+    } finally {
+      setCheckingSubmission(false)
+    }
+  }
 
   const handleUpload = async (formData) => {
     // Generate a temporary ID if user doesn't have one
@@ -109,6 +137,42 @@ const UploadPage = () => {
       setShowEditForm(false) // Reset the trigger
     }
   }, [showEditForm, setShowEditForm])
+
+  // Show loading state while checking submissions
+  if (checkingSubmission) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="card p-8 text-center">
+          <div className="loading-spinner mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Checking Contest Status...
+          </h2>
+          <p className="text-gray-600">
+            Please wait while we verify your submission status
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show submission complete message if user has already submitted
+  if (hasSubmission) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="card p-8 text-center">
+          <div className="text-6xl mb-4">🎉</div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Contest Entry Already Submitted!
+          </h2>
+          <p className="text-gray-600 mb-6">
+            You have already participated in the JK Lakshmi Digital Branding Contest. 
+            Multiple entries are not allowed per user.
+          </p>
+           
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">

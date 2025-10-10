@@ -61,6 +61,53 @@ router.get('/check-submission', async (req, res) => {
   }
 });
 
+// GET /api/contest/user-submissions/:userId - Get all submissions for a user
+router.get('/user-submissions/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing user ID parameter'
+      });
+    }
+
+    // Get all submissions for this user
+    const submissions = await executeQuery(`
+      SELECT 
+        cs.id,
+        cs.submission_id,
+        cs.submitted_at,
+        cs.dealership_name,
+        cs.sap_code,
+        cs.mobile_number,
+        cs.storefront_design_id,
+        cs.interior_design_id,
+        gd1.design_type as storefront_type,
+        gd2.design_type as interior_type
+      FROM contest_submissions cs
+      LEFT JOIN generated_designs gd1 ON cs.storefront_design_id = gd1.id
+      LEFT JOIN generated_designs gd2 ON cs.interior_design_id = gd2.id
+      WHERE cs.user_id = ?
+      ORDER BY cs.submitted_at DESC
+    `, [userId]);
+
+    return res.json({
+      success: true,
+      data: submissions
+    });
+
+  } catch (error) {
+    console.error('Get user submissions error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Database error',
+      message: error.message
+    });
+  }
+});
+
 // POST /api/contest/submit - Submit contest entry with storefront and interior designs
 router.post('/submit', async (req, res) => {
   try {
