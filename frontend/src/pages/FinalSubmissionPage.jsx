@@ -58,7 +58,8 @@ const FinalSubmissionPage = () => {
       }
     } catch (error) {
       // No existing submission found, that's okay
-      console.log('No existing submission found')
+      console.log('No existing submission found:', error.message)
+      console.log('Check submission error details:', error.response?.data || error)
     }
   }
 
@@ -69,17 +70,26 @@ const FinalSubmissionPage = () => {
 
       // Fetch both designs
       const [storefrontResponse, interiorResponse] = await Promise.all([
-        axios.get(`${API_BASE_URL}/api/designs/${storefrontDesignId}`),
-        axios.get(`${API_BASE_URL}/api/designs/${interiorDesignId}`)
+        axios.get(`${API_BASE_URL}/api/designs/detail/${storefrontDesignId}`, {
+          params: { userId: user?.id }
+        }),
+        axios.get(`${API_BASE_URL}/api/designs/detail/${interiorDesignId}`, {
+          params: { userId: user?.id }
+        })
       ])
 
       if (storefrontResponse.data.success && interiorResponse.data.success) {
         console.log('Storefront design data:', storefrontResponse.data.data)
         console.log('Interior design data:', interiorResponse.data.data)
-        setStorefrontDesign(storefrontResponse.data.data)
-        setInteriorDesign(interiorResponse.data.data)
+        
+        if (storefrontResponse.data.data && interiorResponse.data.data) {
+          setStorefrontDesign(storefrontResponse.data.data)
+          setInteriorDesign(interiorResponse.data.data)
+        } else {
+          throw new Error('Design data is empty - designs may not exist or you may not have access to them')
+        }
       } else {
-        throw new Error('Failed to load designs')
+        throw new Error('Failed to load designs - API returned unsuccessful response')
       }
     } catch (error) {
       console.error('Fetch designs error:', error)
