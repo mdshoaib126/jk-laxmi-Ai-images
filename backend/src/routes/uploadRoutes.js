@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { executeQuery } from '../config/db.js';
 import { config } from '../config/env.js';
 import { validateImage, createThumbnail } from '../services/imageUtils.js';
+import { uploadImageToS3, createThumbnailAndUpload } from '../utils/s3Upload.js';
 
 const router = express.Router();
 
@@ -126,6 +127,15 @@ router.post('/interior', upload.single('image'), handleMulterError, async (req, 
       });
     }
 
+    // Upload interior image to S3
+    console.log('Uploading interior image to S3...');
+    const s3Result = await uploadImageToS3(req.file.path, req.file.originalname, 'uploads/interior');
+    console.log('Interior S3 upload successful:', s3Result);
+
+    // Create and upload thumbnail to S3
+    const thumbnailS3Result = await createThumbnailAndUpload(req.file.path, req.file.originalname);
+    console.log('Interior S3 thumbnail upload successful:', thumbnailS3Result);
+
     // Save interior upload record to database with reference to storefront
     console.log('Saving interior upload to database with user_id:', userId);
     const uploadResult = await executeQuery(`
@@ -135,7 +145,7 @@ router.post('/interior', upload.single('image'), handleMulterError, async (req, 
       userId,
       req.file.originalname,
       req.file.filename,
-      req.file.path,
+      s3Result.url, // Store S3 URL as file_path
       req.file.size,
       req.file.mimetype,
       storefrontDesignId
@@ -143,9 +153,6 @@ router.post('/interior', upload.single('image'), handleMulterError, async (req, 
 
     const uploadId = uploadResult.insertId;
     console.log('Interior upload saved successfully with ID:', uploadId);
-
-    // Create thumbnail for faster loading
-    const thumbnailPath = await createThumbnail(req.file.path, req.file.filename);
 
     res.json({
       success: true,
@@ -156,8 +163,10 @@ router.post('/interior', upload.single('image'), handleMulterError, async (req, 
         storefrontDesignId: storefrontDesignId,
         originalName: req.file.originalname,
         filename: req.file.filename,
-        filePath: `/uploads/${req.file.filename}`,
-        thumbnailPath: thumbnailPath ? `/uploads/thumbnails/${path.basename(thumbnailPath)}` : null,
+        filePath: s3Result.url, // S3 URL instead of local path
+        thumbnailPath: thumbnailS3Result.url, // S3 thumbnail URL
+        s3Key: s3Result.key,
+        thumbnailS3Key: thumbnailS3Result.key,
         fileSize: req.file.size,
         mimeType: req.file.mimetype,
         uploadType: 'interior',
@@ -259,7 +268,16 @@ router.post('/', upload.single('image'), handleMulterError, async (req, res) => 
       }
     }
 
-    // Save upload record to database
+    // Upload to S3
+    console.log('Uploading to S3...');
+    const s3Result = await uploadImageToS3(req.file.path, req.file.originalname, 'uploads');
+    console.log('S3 upload successful:', s3Result);
+
+    // Create and upload thumbnail to S3
+    const thumbnailS3Result = await createThumbnailAndUpload(req.file.path, req.file.originalname);
+    console.log('S3 thumbnail upload successful:', thumbnailS3Result);
+
+    // Save upload record to database with S3 URLs (backward compatible)
     console.log('Saving upload to database with user_id:', dbUserId);
     const uploadResult = await executeQuery(`
       INSERT INTO uploads (user_id, original_name, filename, file_path, file_size, mime_type)
@@ -268,16 +286,13 @@ router.post('/', upload.single('image'), handleMulterError, async (req, res) => 
       dbUserId, // This can be null, which is fine
       req.file.originalname,
       req.file.filename,
-      req.file.path,
+      s3Result.url, // Store S3 URL as file_path for backward compatibility
       req.file.size,
       req.file.mimetype
     ]);
 
     const uploadId = uploadResult.insertId;
     console.log('Upload saved successfully with ID:', uploadId);
-
-    // Create thumbnail for faster loading
-    const thumbnailPath = await createThumbnail(req.file.path, req.file.filename);
 
     res.json({
       success: true,
@@ -287,8 +302,10 @@ router.post('/', upload.single('image'), handleMulterError, async (req, res) => 
         userId: dbUserId, // Return the database user ID (integer) or null
         originalName: req.file.originalname,
         filename: req.file.filename,
-        filePath: `/uploads/${req.file.filename}`,
-        thumbnailPath: thumbnailPath ? `/uploads/thumbnails/${path.basename(thumbnailPath)}` : null,
+        filePath: s3Result.url, // S3 URL instead of local path
+        thumbnailPath: thumbnailS3Result.url, // S3 thumbnail URL
+        s3Key: s3Result.key,
+        thumbnailS3Key: thumbnailS3Result.key,
         fileSize: req.file.size,
         mimeType: req.file.mimetype,
         uploadedAt: new Date().toISOString()

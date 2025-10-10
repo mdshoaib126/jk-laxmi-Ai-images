@@ -2,6 +2,7 @@ import express from 'express';
 import { executeQuery } from '../config/db.js';
 import { generateFacadeDesigns, generateInteriorDesigns } from '../services/geminiService.js';
 import { saveGeneratedImage } from '../services/imageUtils.js';
+import { saveGeneratedImageToS3 } from '../utils/s3Upload.js';
 
 const router = express.Router();
 
@@ -70,9 +71,9 @@ router.post('/', async (req, res) => {
         );
 
         if (generatedImageData && generatedImageData.imageData) {
-          // Save the generated image
-          const generatedFilename = `${designType}_${uploadId}_${Date.now()}.png`;
-          const savedImageResult = await saveGeneratedImage(
+          // Save the generated image to S3
+          const generatedFilename = `${designType}_${uploadId}_${Date.now()}.jpg`;
+          const savedImageResult = await saveGeneratedImageToS3(
             generatedImageData.imageData,
             generatedFilename
           );
@@ -87,7 +88,7 @@ router.post('/', async (req, res) => {
             upload.user_id,  // Use actual integer user_id from upload
             dbDesignType,  // Use mapped design type for database
             generatedFilename,
-            savedImageResult.filePath,
+            savedImageResult.url, // S3 URL instead of local file path
             savedImageResult.fileSize,
             savedImageResult.width,
             savedImageResult.height,
@@ -100,7 +101,8 @@ router.post('/', async (req, res) => {
             designId,
             designType,
             filename: generatedFilename,
-            filePath: `/generated/${generatedFilename}`,
+            filePath: savedImageResult.url, // S3 URL
+            s3Key: savedImageResult.key,
             prompt: generatedImageData.prompt,
             generatedAt: new Date().toISOString()
           });
@@ -196,9 +198,9 @@ router.post('/single', async (req, res) => {
       });
     }
 
-    // Save the generated image
-    const generatedFilename = `${designType}_${uploadId}_${Date.now()}.png`;
-    const savedImageResult = await saveGeneratedImage(
+    // Save the generated image to S3
+    const generatedFilename = `${designType}_${uploadId}_${Date.now()}.jpg`;
+    const savedImageResult = await saveGeneratedImageToS3(
       generatedImageData.imageData,
       generatedFilename
     );
@@ -213,7 +215,7 @@ router.post('/single', async (req, res) => {
       upload.user_id, // Use the user_id from the upload record (integer or null)
       designType,
       generatedFilename,
-      savedImageResult.filePath,
+      savedImageResult.url, // S3 URL
       savedImageResult.fileSize,
       savedImageResult.width,
       savedImageResult.height,
@@ -232,8 +234,9 @@ router.post('/single', async (req, res) => {
         userId: upload.user_id, // Return the actual database user_id
         designType,
         filename: generatedFilename,
-        filePath: `/generated/${generatedFilename}`,
-        originalImage: `/uploads/${upload.filename}`,
+        filePath: savedImageResult.url, // S3 URL
+        s3Key: savedImageResult.key,
+        originalImage: upload.file_path, // This should also be S3 URL now
         prompt: generatedImageData.prompt,
         generatedAt: new Date().toISOString()
       }
@@ -376,9 +379,9 @@ router.post('/interior', async (req, res) => {
         );
 
         if (generatedImageData && generatedImageData.imageData) {
-          // Save the generated image
-          const generatedFilename = `interior_${designType}_${uploadId}_${Date.now()}.png`;
-          const savedImageResult = await saveGeneratedImage(
+          // Save the generated image to S3
+          const generatedFilename = `interior_${designType}_${uploadId}_${Date.now()}.jpg`;
+          const savedImageResult = await saveGeneratedImageToS3(
             generatedImageData.imageData,
             generatedFilename
           );
@@ -393,7 +396,7 @@ router.post('/interior', async (req, res) => {
             upload.user_id,
             dbDesignType,
             generatedFilename,
-            savedImageResult.filePath,
+            savedImageResult.url, // S3 URL
             savedImageResult.fileSize,
             savedImageResult.width,
             savedImageResult.height,
@@ -408,7 +411,8 @@ router.post('/interior', async (req, res) => {
             designId,
             designType,
             filename: generatedFilename,
-            filePath: `/generated/${generatedFilename}`,
+            filePath: savedImageResult.url, // S3 URL
+            s3Key: savedImageResult.key,
             prompt: generatedImageData.prompt,
             generatedAt: new Date().toISOString(),
             isInterior: true,
