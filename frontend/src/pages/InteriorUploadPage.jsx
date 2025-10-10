@@ -110,22 +110,7 @@ const InteriorUploadPage = () => {
         </p>
       </div>
 
-      {/* Navigation Breadcrumb */}
-      <div className="flex items-center space-x-2 text-sm text-gray-500">
-        <button onClick={() => navigate('/upload')} className="hover:text-gray-700">
-          Upload
-        </button>
-        <span>›</span>
-        <button onClick={handleBack} className="hover:text-gray-700">
-          Select Storefront
-        </button>
-        <span>›</span>
-        <span className="text-gray-900 font-medium">Interior Upload</span>
-        <span>›</span>
-        <span className="text-gray-400">Interior Design</span>
-        <span>›</span>
-        <span className="text-gray-400">Contest Entry</span>
-      </div>
+       
 
       {/* Selected Storefront Design Preview */}
       {storefrontDesign && (
@@ -155,25 +140,7 @@ const InteriorUploadPage = () => {
         </div>
       )}
 
-      {/* Interior Upload Instructions */}
-      <div className="card p-6">
-        <div className="flex items-start space-x-4">
-          <div className="flex-shrink-0">
-            <Home className="w-8 h-8 text-blue-500" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900 mb-2">
-              📸 Interior Photo Guidelines
-            </h3>
-            <ul className="text-sm text-gray-600 space-y-2">
-              <li>• Upload a clear photo of your shop's interior space</li>
-              <li>• Include areas like customer seating, product displays, or service counters</li>
-              <li>• Ensure good lighting and avoid blurry images</li>
-              <li>• The AI will generate interior designs that match your selected storefront style</li>
-            </ul>
-          </div>
-        </div>
-      </div>
+       
 
       {/* Image Uploader */}
       <div className="card p-6">
@@ -200,29 +167,7 @@ const InteriorUploadPage = () => {
           <span>Back to Storefront Selection</span>
         </button>
       </div>
-
-      {/* Tips for Interior Photos */}
-      <div className="card p-6 bg-blue-50 border-blue-200">
-        <h3 className="font-semibold text-blue-900 mb-3">💡 Pro Tips for Interior Photos</h3>
-        <div className="grid md:grid-cols-2 gap-4 text-sm text-blue-800">
-          <div>
-            <h4 className="font-medium mb-2">Best Photo Angles:</h4>
-            <ul className="space-y-1">
-              <li>• Wide-angle shots of main areas</li>
-              <li>• Include key furniture and fixtures</li>
-              <li>• Natural lighting works best</li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">What Gets Enhanced:</h4>
-            <ul className="space-y-1">
-              <li>• Wall colors and textures</li>
-              <li>• Furniture arrangement</li>
-              <li>• Lighting and ambiance</li>
-            </ul>
-          </div>
-        </div>
-      </div>
+ 
     </div>
   )
 }

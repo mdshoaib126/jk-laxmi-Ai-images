@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { Share2, Download, Trophy, CheckCircle, ArrowLeft } from 'lucide-react'
+import { Trophy, CheckCircle, ArrowLeft } from 'lucide-react'
 import { UserContext } from '../App'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://jk-lakshmi-api.expm.in'
@@ -77,35 +77,7 @@ const FinalSubmissionPage = () => {
       setSubmitting(false)
     }
   }
-
-  const handleShare = (designType) => {
-    const design = designType === 'storefront' ? storefrontDesign : interiorDesign
-    if (design) {
-      navigate(`/share/${design.designId}`)
-    }
-  }
-
-  const handleDownloadBoth = () => {
-    if (storefrontDesign && interiorDesign) {
-      // Download storefront design
-      const storefrontLink = document.createElement('a')
-      storefrontLink.href = `${API_BASE_URL}${storefrontDesign.filePath}`
-      storefrontLink.download = `${user.dealershipName}_Storefront_Design.png`
-      document.body.appendChild(storefrontLink)
-      storefrontLink.click()
-      document.body.removeChild(storefrontLink)
-
-      // Download interior design after a short delay
-      setTimeout(() => {
-        const interiorLink = document.createElement('a')
-        interiorLink.href = `${API_BASE_URL}${interiorDesign.filePath}`
-        interiorLink.download = `${user.dealershipName}_Interior_Design.png`
-        document.body.appendChild(interiorLink)
-        interiorLink.click()
-        document.body.removeChild(interiorLink)
-      }, 500)
-    }
-  }
+ 
 
   const designTypes = {
     modern_premium: {
@@ -250,62 +222,7 @@ const FinalSubmissionPage = () => {
             </div>
           </div>
         </div>
-
-        {/* Action Buttons */}
-        <div className="card p-6">
-          <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
-            <div className="text-center md:text-left">
-              <h3 className="font-semibold text-gray-900 mb-1">
-                Ready to Share Your Designs?
-              </h3>
-              <p className="text-sm text-gray-600">
-                Download and share your designs to maximize your contest chances
-              </p>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-              <button
-                onClick={handleDownloadBoth}
-                className="flex items-center space-x-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-all"
-              >
-                <Download className="w-5 h-5" />
-                <span>Download Both Designs</span>
-              </button>
-              
-              <button
-                onClick={() => handleShare('storefront')}
-                className="flex items-center space-x-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-all"
-              >
-                <Share2 className="w-5 h-5" />
-                <span>Share Designs</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Next Steps */}
-        <div className="card p-6 bg-yellow-50 border-yellow-200">
-          <h3 className="font-semibold text-yellow-900 mb-3 flex items-center">
-            <Trophy className="w-5 h-5 mr-2" />
-            What Happens Next?
-          </h3>
-          <div className="text-sm text-yellow-800 space-y-2">
-            <p>• Your entry is now part of the JK Lakshmi Digital Branding Contest</p>
-            <p>• Share your designs on social media to increase visibility</p>
-            <p>• Contest winners will be announced based on design quality and social engagement</p>
-            <p>• Keep an eye on our official channels for updates and results</p>
-          </div>
-        </div>
-
-        {/* New Entry Button */}
-        <div className="text-center">
-          <button
-            onClick={() => navigate('/upload')}
-            className="flex items-center space-x-2 px-8 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all mx-auto"
-          >
-            <span>Create New Entry</span>
-          </button>
-        </div>
+ 
       </div>
     )
   }
@@ -324,19 +241,7 @@ const FinalSubmissionPage = () => {
       </div>
 
       {/* Navigation Breadcrumb */}
-      <div className="flex items-center space-x-2 text-sm text-gray-500">
-        <button onClick={() => navigate('/upload')} className="hover:text-gray-700">
-          Upload
-        </button>
-        <span>›</span>
-        <span className="text-gray-500">Select Storefront</span>
-        <span>›</span>
-        <span className="text-gray-500">Interior Upload</span>
-        <span>›</span>
-        <span className="text-gray-500">Interior Design</span>
-        <span>›</span>
-        <span className="text-gray-900 font-medium">Contest Entry</span>
-      </div>
+      
 
       {/* User Info */}
       <div className="card p-6 bg-blue-50 border-blue-200">
@@ -381,12 +286,7 @@ const FinalSubmissionPage = () => {
               <span>{designTypes[storefrontDesign?.designType]?.icon || '🎨'}</span>
               <span>{designTypes[storefrontDesign?.designType]?.name || storefrontDesign?.designType}</span>
             </div>
-            <button
-              onClick={() => handleShare('storefront')}
-              className="block w-full mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-all"
-            >
-              Preview & Share
-            </button>
+             
           </div>
         </div>
 
@@ -407,12 +307,7 @@ const FinalSubmissionPage = () => {
               <span>{designTypes[interiorDesign?.designType]?.icon || '🎨'}</span>
               <span>{designTypes[interiorDesign?.designType]?.name || interiorDesign?.designType}</span>
             </div>
-            <button
-              onClick={() => handleShare('interior')}
-              className="block w-full mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-all"
-            >
-              Preview & Share
-            </button>
+            
           </div>
         </div>
       </div>
@@ -450,18 +345,7 @@ const FinalSubmissionPage = () => {
           </div>
         </div>
       </div>
-
-      {/* Contest Terms */}
-      <div className="card p-6 bg-gray-50 border-gray-200">
-        <h3 className="font-semibold text-gray-900 mb-3">📜 Contest Terms</h3>
-        <div className="text-xs text-gray-600 space-y-2">
-          <p>• This contest is organized by JK Lakshmi Cement for dealers and their customers</p>
-          <p>• Submitted designs may be used by JK Lakshmi for promotional purposes</p>
-          <p>• Winners will be selected based on design quality, creativity, and social media engagement</p>
-          <p>• Contest results and prizes will be announced on official JK Lakshmi channels</p>
-          <p>• Participants must ensure they have rights to the uploaded images</p>
-        </div>
-      </div>
+ 
     </div>
   )
 }

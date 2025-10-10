@@ -236,7 +236,7 @@ router.post('/single', async (req, res) => {
         filename: generatedFilename,
         filePath: savedImageResult.url, // S3 URL
         s3Key: savedImageResult.key,
-        originalImage: upload.file_path, // This should also be S3 URL now
+        originalImage: `/uploads/${upload.filename}`, // Local path for original image
         prompt: generatedImageData.prompt,
         generatedAt: new Date().toISOString()
       }

@@ -182,22 +182,7 @@ const InteriorPreviewPage = () => {
         </p>
       </div>
 
-      {/* Navigation Breadcrumb */}
-      <div className="flex items-center space-x-2 text-sm text-gray-500">
-        <button onClick={() => navigate('/upload')} className="hover:text-gray-700">
-          Upload
-        </button>
-        <span>›</span>
-        <span className="text-gray-500">Select Storefront</span>
-        <span>›</span>
-        <button onClick={handleBack} className="hover:text-gray-700">
-          Interior Upload
-        </button>
-        <span>›</span>
-        <span className="text-gray-900 font-medium">Interior Design</span>
-        <span>›</span>
-        <span className="text-gray-400">Contest Entry</span>
-      </div>
+      
 
       {/* Selected Storefront Design Preview */}
       {storefrontDesign && (
@@ -282,29 +267,7 @@ const InteriorPreviewPage = () => {
           </div>
         </div>
       )}
-
-      {/* Tips for Interior Selection */}
-      <div className="card p-6 bg-purple-50 border-purple-200">
-        <h3 className="font-semibold text-purple-900 mb-3">🏪 Interior Design Tips</h3>
-        <div className="grid md:grid-cols-2 gap-4 text-sm text-purple-800">
-          <div>
-            <h4 className="font-medium mb-2">What to Look For:</h4>
-            <ul className="space-y-1">
-              <li>• Cohesive style with your storefront</li>
-              <li>• Functional layout and spacing</li>
-              <li>• Appealing color coordination</li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-medium mb-2">Contest Success:</h4>
-            <ul className="space-y-1">
-              <li>• Complete design package stands out</li>
-              <li>• Professional appearance matters</li>
-              <li>• Consistency creates impact</li>
-            </ul>
-          </div>
-        </div>
-      </div>
+ 
     </div>
   )
 }
