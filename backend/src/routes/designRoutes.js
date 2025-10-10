@@ -54,7 +54,7 @@ router.get('/:userId', async (req, res) => {
           uploadId,
           originalImage: {
             filename: design.original_name,
-            filePath: `/uploads/${design.original_filename_stored}`,
+            filePath: `/uploads/${design.original_filename_stored}`, // Keep local path for original images
             uploadedAt: design.upload_created_at
           },
           userInfo: {
@@ -69,7 +69,7 @@ router.get('/:userId', async (req, res) => {
         designId: design.design_id,
         designType: design.design_type,
         filename: design.filename,
-        filePath: `/generated/${design.filename}`,
+        filePath: design.file_path, // Use the actual stored file_path (S3 URL or local path)
         prompt: design.ai_prompt,
         generatedAt: design.created_at,
         isSelected: design.processing_status === 'completed'
@@ -147,7 +147,7 @@ router.get('/detail/:designId', async (req, res) => {
         userId: design.user_id,
         designType: design.design_type,
         filename: design.filename,
-        filePath: `/generated/${design.filename}`,
+        filePath: design.file_path, // Use actual stored file_path (S3 URL)
         prompt: design.ai_prompt,
         generatedAt: design.created_at,
         isSelected: design.processing_status === 'completed',
@@ -368,7 +368,7 @@ router.get('/interior/:userId', async (req, res) => {
             designId: design.storefront_design_id,
             designType: design.storefront_design_type,
             filename: design.storefront_filename,
-            filePath: `/generated/${design.storefront_filename}`
+            filePath: design.storefront_file_path || `/generated/${design.storefront_filename}` // Use S3 URL if available
           },
           userInfo: {
             dealershipName: design.user_dealership_name,
@@ -382,7 +382,7 @@ router.get('/interior/:userId', async (req, res) => {
         designId: design.design_id,
         designType: design.design_type,
         filename: design.filename,
-        filePath: `/generated/${design.filename}`,
+        filePath: design.file_path, // Use actual stored file_path (S3 URL)
         prompt: design.ai_prompt,
         generatedAt: design.created_at,
         isSelected: design.processing_status === 'completed',
@@ -500,7 +500,7 @@ router.get('/:designId', async (req, res) => {
         userId: design.user_id,
         designType: design.design_type,
         filename: design.filename,
-        filePath: `/generated/${design.filename}`,
+        filePath: design.file_path, // Use actual stored file_path (S3 URL)
         prompt: design.ai_prompt,
         generatedAt: design.created_at,
         isSelected: design.processing_status === 'completed',

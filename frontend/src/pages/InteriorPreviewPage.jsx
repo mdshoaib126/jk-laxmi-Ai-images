@@ -5,7 +5,7 @@ import { RefreshCw, ArrowRight, ArrowLeft } from 'lucide-react'
 import { UserContext } from '../App'
 import DesignCarousel from '../components/DesignCarousel'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://jk-lakshmi-api.expm.in'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
 const InteriorPreviewPage = () => {
   const { uploadId } = useParams()
@@ -174,45 +174,16 @@ const InteriorPreviewPage = () => {
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Choose Your Interior Design
+        <h1 className="text-xl font-bold text-gray-900 mb-4">
+          JK Lakshmi SKY - DIGITAL BRANDING CONTEST 
         </h1>
-        <p className="text-gray-600">
-          Select your favorite interior design to complete your contest entry
+        <p className="text-l text-gray-600 mb-6">
+          अब सजाइए अपनी दुकान – इस दिवाली सप्ताह पर डिजिटल स्टाइल में! और पाएं इनाम!
+
         </p>
       </div>
 
-      
-
-      {/* Selected Storefront Design Preview */}
-      {storefrontDesign && (
-        <div className="card p-4 bg-green-50 border-green-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex-shrink-0">
-                <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
-                  <img
-                    src={`${storefrontDesign.filePath}`}
-                    alt="Selected storefront design"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center space-x-2 mb-1">
-                  <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  <span className="font-medium text-green-900 text-sm">Selected Storefront</span>
-                </div>
-                <p className="text-xs text-green-700">
-                  Your chosen exterior design - now select a matching interior
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+       
 
       {/* Design Carousel */}
       <DesignCarousel
@@ -229,7 +200,7 @@ const InteriorPreviewPage = () => {
           <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
             <div className="text-center md:text-left">
               <h3 className="font-semibold text-gray-900 mb-1">
-                Ready to Complete Your Contest Entry?
+                Ready to Complete Your Contest?
               </h3>
               <p className="text-sm text-gray-600">
                 Select your interior design and submit your complete entry
@@ -237,7 +208,7 @@ const InteriorPreviewPage = () => {
             </div>
             
             <div className="flex flex-row space-x-4 justify-center">
-              <button
+              {/* <button
                 onClick={handleBack}
                 className="flex items-center space-x-2 px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition-all"
               >
@@ -252,14 +223,14 @@ const InteriorPreviewPage = () => {
               >
                 <RefreshCw className={`w-5 h-5 ${generating ? 'animate-spin' : ''}`} />
                 <span>Generate New Designs</span>
-              </button>
+              </button> */}
               
               {selectedInteriorDesign && (
                 <button
                   onClick={handleFinalSubmission}
-                  className="flex items-center space-x-2 px-8 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all shadow-lg"
+                  className="btn-primary flex items-center space-x-2 px-8 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all shadow-lg"
                 >
-                  <span>Complete Contest Entry</span>
+                  <span>Continue to Final Submit </span>
                   <ArrowRight className="w-5 h-5" />
                 </button>
               )}

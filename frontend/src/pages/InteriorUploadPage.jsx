@@ -5,7 +5,7 @@ import { ArrowLeft, Home } from 'lucide-react'
 import { UserContext } from '../App'
 import ImageUploader from '../components/ImageUploader'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://jk-lakshmi-api.expm.in'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
 const InteriorUploadPage = () => {
   const { storefrontDesignId } = useParams()
@@ -102,72 +102,40 @@ const InteriorUploadPage = () => {
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Upload Interior Photo
+        <h1 className="text-xl font-bold text-gray-900 mb-4">
+          JK Lakshmi SKY - DIGITAL BRANDING CONTEST 
         </h1>
-        <p className="text-gray-600">
-          Now upload a photo of your shop interior to generate matching interior designs
+        <p className="text-l text-gray-600 mb-6">
+          अब सजाइए अपनी दुकान – इस दिवाली सप्ताह पर डिजिटल स्टाइल में! और पाएं इनाम!
+
         </p>
       </div>
 
        
 
-      {/* Selected Storefront Design Preview */}
-      {storefrontDesign && (
-        <div className="card p-6 bg-green-50 border-green-200">
-          <div className="flex items-center space-x-4">
-            <div className="flex-shrink-0">
-              <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden">
-                <img
-                  src={`${API_BASE_URL}${storefrontDesign.filePath}`}
-                  alt="Selected storefront design"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </div>
-            <div className="flex-grow">
-              <div className="flex items-center space-x-2 mb-2">
-                <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                <h3 className="font-semibold text-green-900">Selected Storefront Design</h3>
-              </div>
-              <p className="text-sm text-green-700">
-                Great choice! Now let's create matching interior designs for your shop.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+       
 
        
 
       {/* Image Uploader */}
-      <div className="card p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          🏪 Upload Your Interior Photo
-        </h3>
-        <ImageUploader
+      <ImageUploader
           onUpload={handleInteriorUpload}
           uploading={uploading}
           acceptedFileTypes="image/*"
           maxFileSize={10}
           uploadButtonText="Generate Interior Designs"
           uploadingText="Uploading Interior Photo..."
+          uploadheadingText="Upload Your Interior Photo"
+          uploadDescriptionText="Choose how you'd like to add your interior space image"
+          photoTips={[
+            "Capture a clear view of your interior space",
+            "Include multiple angles for best results",
+            "Ensure good natural or artificial lighting",
+            "Show the room layout and key features",
+            "Avoid cluttered or messy areas"
+          ]}
         />
-      </div>
-
-      {/* Back Button */}
-      <div className="flex justify-center">
-        <button
-          onClick={handleBack}
-          className="flex items-center space-x-2 px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition-all"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Back to Storefront Selection</span>
-        </button>
-      </div>
- 
+       
     </div>
   )
 }

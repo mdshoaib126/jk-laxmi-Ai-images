@@ -5,7 +5,7 @@ import { RefreshCw, ArrowRight } from 'lucide-react'
 import { UserContext } from '../App'
 import DesignCarousel from '../components/DesignCarousel'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://jk-lakshmi-api.expm.in'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
 const PreviewPage = () => {
   const { uploadId } = useParams()
@@ -41,12 +41,15 @@ const PreviewPage = () => {
 
       if (designsResponse.data.success && designsResponse.data.data.length > 0) {
         const uploadData = designsResponse.data.data[0]
-        setOriginalImage(uploadData.originalImage.filePath)
-        setDesigns(uploadData.designs)
+        // Handle different response structures
+        const originalImagePath = uploadData.originalImage?.filePath || uploadData.originalImage
+        setOriginalImage(originalImagePath)
+        setDesigns(uploadData.designs || [])
         
         // Auto-select first design if none selected
-        if (uploadData.designs.length > 0 && !selectedDesign) {
-          setSelectedDesign(uploadData.designs.find(d => d.isSelected) || uploadData.designs[0])
+        const designsList = uploadData.designs || []
+        if (designsList.length > 0 && !selectedDesign) {
+          setSelectedDesign(designsList.find(d => d.isSelected) || designsList[0])
         }
       } else {
         // No designs exist, trigger generation
@@ -169,11 +172,12 @@ const PreviewPage = () => {
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Choose Your Storefront Design
+        <h1 className="text-xl font-bold text-gray-900 mb-4">
+          JK Lakshmi SKY - DIGITAL BRANDING CONTEST 
         </h1>
-        <p className="text-gray-600">
-          Select your favorite storefront design to continue with interior design
+        <p className="text-l text-gray-600 mb-6">
+          अब सजाइए अपनी दुकान – इस दिवाली सप्ताह पर डिजिटल स्टाइल में! और पाएं इनाम!
+
         </p>
       </div>
 
@@ -184,6 +188,7 @@ const PreviewPage = () => {
         designs={designs}
         selectedDesign={selectedDesign}
         onSelectDesign={handleSelectDesign}
+        onContinueToInterior={handleNext}
         loading={generating}
         originalImage={originalImage}
       />
@@ -208,7 +213,7 @@ const PreviewPage = () => {
               {selectedDesign && (
                 <button
                   onClick={handleNext}
-                  className="flex items-center space-x-2 px-8 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-all shadow-lg"
+                  className="btn-primary flex items-center space-x-2 px-8 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-all shadow-lg"
                 >
                   <span>Continue to Interior</span>
                   <ArrowRight className="w-5 h-5" />

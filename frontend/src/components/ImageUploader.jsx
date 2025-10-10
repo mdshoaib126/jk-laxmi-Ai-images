@@ -1,7 +1,19 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { Camera, Upload, RotateCcw, X } from 'lucide-react'
 
-const ImageUploader = ({ onUpload, loading = false, userId }) => {
+const ImageUploader = ({ 
+  onUpload, 
+  loading = false, 
+  userId,
+  uploadheadingText = "Upload Your Shopfront Photo",
+  uploadDescriptionText = "Choose how you'd like to add your shop's current facade image",
+  photoTips = [
+    "Capture the full front view of your shop",
+    "Ensure good lighting (avoid shadows)",
+    "Keep the camera steady and level",
+    "Include any existing signage or branding"
+  ]
+}) => {
   const [dragActive, setDragActive] = useState(false)
   const [uploadMethod, setUploadMethod] = useState('file') // 'file' or 'camera'
   const [showCamera, setShowCamera] = useState(false)
@@ -251,22 +263,23 @@ const ImageUploader = ({ onUpload, loading = false, userId }) => {
     <div className="card p-4">
       <div className="text-center mb-2">
         <h2 className="text-xl font-bold text-gray-900 mb-2">
-          Upload Your Shopfront Photo
+          {uploadheadingText}
         </h2>
         <p className="text-gray-600">
-          Choose how you'd like to add your shop's current facade image
+          {uploadDescriptionText}
         </p>
       </div>
 
-      <div className="mt-2 mb-4 p-1 bg-blue-50 rounded-lg">
-        <h4 className="font-medium text-blue-900 mb-2">📋 Photo Tips:</h4>
-        <ul className="text-sm text-blue-800 space-y-1">
-          <li>Capture the full front view of your shop</li>
-          <li>Ensure good lighting (avoid shadows)</li>
-          <li>Keep the camera steady and level</li>
-          <li>Include any existing signage or branding</li>
-        </ul>
-      </div>
+      {photoTips && photoTips.length > 0 && (
+        <div className="mt-2 mb-4 p-1 bg-blue-50 rounded-lg">
+          <h4 className="font-medium text-blue-900 mb-2">📋 Photo Tips:</h4>
+          <ul className="text-sm text-blue-800 space-y-1">
+            {photoTips.map((tip, index) => (
+              <li key={index}>{tip}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Upload Method Selection */}
       <div className="flex justify-center space-x-4 mb-6">

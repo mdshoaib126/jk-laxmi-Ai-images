@@ -8,6 +8,16 @@ import 'swiper/css/pagination'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://jk-lakshmi-api.expm.in'
 
+// Helper function to get correct image URL
+const getImageUrl = (filePath) => {
+  // If filePath starts with http/https, it's an S3 URL, use directly
+  if (filePath && (filePath.startsWith('http://') || filePath.startsWith('https://'))) {
+    return filePath
+  }
+  // Otherwise, it's a local path, prepend API_BASE_URL
+  return `${API_BASE_URL}${filePath}`
+}
+
 // Loading Component with animated gears and rotating messages
 const LoadingComponent = () => {
   const [currentMessage, setCurrentMessage] = useState(0)
@@ -193,6 +203,7 @@ const DesignCarousel = ({
   designs = [], 
   selectedDesign, 
   onSelectDesign,
+  onContinueToInterior,
   loading = false,
   originalImage
 }) => {
@@ -284,7 +295,7 @@ const DesignCarousel = ({
           <h3 className="font-semibold text-gray-900 mb-3">Original Photo</h3>
           <div className="relative h-48 bg-gray-100 rounded-lg overflow-hidden">
             <img
-              src={`${API_BASE_URL}${originalImage}`}
+              src={getImageUrl(originalImage)}
               alt="Original shopfront"
               className="w-full h-full object-cover"
             />
@@ -343,7 +354,7 @@ const DesignCarousel = ({
                       </div>
                     )}
                     <img
-                      src={`${API_BASE_URL}${design.filePath}`}
+                      src={getImageUrl(design.filePath)}
                       alt={`${typeInfo.name} design`}
                       className={`w-full h-full object-cover transition-opacity ${
                         isLoading ? 'opacity-0' : 'opacity-100'
@@ -362,46 +373,51 @@ const DesignCarousel = ({
                         </svg>
                       </div>
                     </div>
-                    
-                    {/* Select Button */}
-                    {!isSelected && (
-                      <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 hover:opacity-100 flex items-center justify-center transition-all">
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onSelectDesign(design)
-                          }}
-                          className="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-all"
-                        >
-                          Select This Design
-                        </button>
-                      </div>
-                    )}
-                    
-                    {/* Download Icon */}
+                  </div>
+                  
+                  {/* Action Buttons Row */}
+                  <div className="mt-3 flex items-center justify-between space-x-2">
+                    {/* Download Button */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         const link = document.createElement('a')
-                        link.href = `${API_BASE_URL}${design.filePath}`
+                        link.href = getImageUrl(design.filePath)
                         link.download = `${typeInfo.name}_design.png`
                         document.body.appendChild(link)
                         link.click()
                         document.body.removeChild(link)
                       }}
-                      className="absolute top-3 right-3 w-8 h-8 bg-black bg-opacity-60 hover:bg-opacity-80 rounded-full flex items-center justify-center transition-all shadow-lg z-10"
+                      className="btn-primary flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-all transform hover:scale-105 shadow-lg"
                     >
-                      <Download className="w-4 h-4 text-white" />
+                      
+                      <span>Download</span>
                     </button>
-                  </div>
-                  
-                  {/* Design Type Badge */}
-                  <div className="mt-3 text-center">
-                    <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-gradient-to-r ${typeInfo.color} text-white text-sm font-medium`}>
-                      <span>{typeInfo.icon}</span>
-                      <span>{typeInfo.name}</span>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">{typeInfo.description}</p>
+
+                    {/* Select/Continue Button */}
+                    {isSelected ? (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          // Button is disabled when selected, just for visual indication
+                        }}
+                        className="btn-secondry flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium transition-all shadow-lg cursor-default border-2 border-green-400"
+                        disabled
+                      >
+                        
+                        <span>Selected</span>
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onSelectDesign(design)
+                        }}
+                        className="btn-primary flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg font-medium transition-all transform hover:scale-105 shadow-lg"
+                      >
+                        <span>Select This Design</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </SwiperSlide>
@@ -409,16 +425,18 @@ const DesignCarousel = ({
           })}
         </Swiper>
         
-        {/* Custom Small Navigation */}
+        {/* Custom Interactive Navigation */}
         <div className="flex justify-center items-center mt-6 space-x-6">
-          <button className="swiper-button-prev-custom w-10 h-10 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition-all shadow-sm">
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          <button className="swiper-button-prev-custom w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-full flex items-center justify-center transition-all transform hover:scale-110 shadow-lg">
+            <ChevronLeft className="w-6 h-6 text-white" />
           </button>
           <div className="swiper-pagination-custom flex justify-center space-x-2"></div>
-          <button className="swiper-button-next-custom w-10 h-10 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition-all shadow-sm">
-            <ChevronRight className="w-5 h-5 text-gray-600" />
+          <button className="swiper-button-next-custom w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-full flex items-center justify-center transition-all transform hover:scale-110 shadow-lg">
+            <ChevronRight className="w-6 h-6 text-white" />
           </button>
         </div>
+
+
       </div>
 
 

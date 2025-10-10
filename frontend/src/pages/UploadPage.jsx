@@ -4,7 +4,7 @@ import axios from 'axios'
 import { UserContext } from '../App'
 import ImageUploader from '../components/ImageUploader'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://jk-lakshmi-api.expm.in'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
 const UploadPage = () => {
   const { user, updateUser, showEditForm, setShowEditForm } = useContext(UserContext)
@@ -236,6 +236,14 @@ const UploadPage = () => {
           onUpload={handleUpload}
           loading={uploading}
           userId={user?.id}
+          uploadheadingText="Upload Your Shopfront Photo"
+          uploadDescriptionText="Choose how you'd like to add your shop's current facade image"
+          photoTips={[
+            "Capture the full front view of your shop",
+            "Ensure good lighting (avoid shadows)",
+            "Keep the camera steady and level",
+            "Include any existing signage or branding"
+          ]}
         />
       )}
 

@@ -3,8 +3,23 @@ import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { Trophy, CheckCircle, ArrowLeft } from 'lucide-react'
 import { UserContext } from '../App'
+import { FireworksBackground } from '@/components/ui/shadcn-io/fireworks-background'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://jk-lakshmi-api.expm.in'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+
+// Helper function to get correct image URL
+const getImageUrl = (filePath) => {
+  // Return placeholder if filePath is null/undefined
+  if (!filePath) {
+    return '/api/placeholder/400/300' // or any placeholder image you prefer
+  }
+  // If filePath starts with http/https, it's an S3 URL, use directly
+  if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+    return filePath
+  }
+  // Otherwise, it's a local path, prepend API_BASE_URL
+  return `${API_BASE_URL}${filePath}`
+}
 
 const FinalSubmissionPage = () => {
   const { storefrontDesignId, interiorDesignId } = useParams()
@@ -24,7 +39,28 @@ const FinalSubmissionPage = () => {
     }
 
     fetchDesigns()
+    checkExistingSubmission()
   }, [storefrontDesignId, interiorDesignId, user?.id])
+
+  const checkExistingSubmission = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/contest/check-submission`, {
+        params: {
+          userId: user?.id,
+          storefrontDesignId,
+          interiorDesignId
+        }
+      })
+      
+      if (response.data.success && response.data.data) {
+        // Submission already exists
+        setSubmissionData(response.data.data)
+      }
+    } catch (error) {
+      // No existing submission found, that's okay
+      console.log('No existing submission found')
+    }
+  }
 
   const fetchDesigns = async () => {
     try {
@@ -38,6 +74,8 @@ const FinalSubmissionPage = () => {
       ])
 
       if (storefrontResponse.data.success && interiorResponse.data.success) {
+        console.log('Storefront design data:', storefrontResponse.data.data)
+        console.log('Interior design data:', interiorResponse.data.data)
         setStorefrontDesign(storefrontResponse.data.data)
         setInteriorDesign(interiorResponse.data.data)
       } else {
@@ -143,86 +181,46 @@ const FinalSubmissionPage = () => {
   // Success state after submission
   if (submissionData) {
     return (
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* Success Header */}
+      <div className="relative min-h-screen w-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+        {/* Fireworks Background Animation - Full Page */}
+        {/* <FireworksBackground
+          className="fixed inset-10 z-0 pointer-events-none"
+          population={10}
+          colors={['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff', '#5f27cd', '#fd79a8', '#fdcb6e', '#6c5ce7', '#a29bfe']}
+        /> */}
+        
+        <div className="relative z-10 min-h-screen flex flex-col">
+          <div className="flex-1 max-w-4xl mx-auto px-4 py-8 space-y-8">
+          {/* Success Header */}
         <div className="text-center">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="w-12 h-12 text-green-600" />
-          </div>
+
+        <h1 className="text-xl font-bold text-gray-900 mb-4">
+          JK Lakshmi SKY - DIGITAL BRANDING CONTEST 
+        </h1>
+        <p className="text-l text-gray-600 mb-6">
+          अब सजाइए अपनी दुकान – इस दिवाली सप्ताह पर डिजिटल स्टाइल में! और पाएं इनाम!
+
+        </p>
+
+          
+        </div>
+
+        {/* Submission Details */}
+        <div className="card p-6 bg-green-50 border-green-200">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-12 h-12 text-green-600" />
+            </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Contest Entry Submitted Successfully! 🎉
           </h1>
           <p className="text-gray-600">
             Your complete design package has been entered into the JK Lakshmi Contest
           </p>
-        </div>
-
-        {/* Submission Details */}
-        <div className="card p-6 bg-green-50 border-green-200">
-          <div className="text-center">
-            <h3 className="font-semibold text-green-900 mb-2">
-              Submission ID: {submissionData.submissionId}
-            </h3>
-            <p className="text-sm text-green-700 mb-4">
-              Save this ID for your records and tracking
-            </p>
-            <div className="grid md:grid-cols-3 gap-4 text-sm">
-              <div>
-                <span className="font-medium">Dealership:</span>
-                <br />
-                {user.dealershipName}
-              </div>
-              <div>
-                <span className="font-medium">SAP Code:</span>
-                <br />
-                {user.sapCode}
-              </div>
-              <div>
-                <span className="font-medium">Submitted:</span>
-                <br />
-                {new Date().toLocaleDateString()}
-              </div>
             </div>
+        </div>
           </div>
         </div>
-
-        {/* Design Preview */}
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="card p-4">
-            <h3 className="font-semibold text-gray-900 mb-3 text-center">Storefront Design</h3>
-            <div className="relative h-48 bg-gray-100 rounded-lg overflow-hidden mb-3">
-              <img
-                src={`${storefrontDesign.filePath}`}
-                alt="Selected storefront design"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="text-center">
-              <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-gradient-to-r ${designTypes[storefrontDesign.designType]?.color || 'from-gray-500 to-gray-600'} text-white text-sm font-medium`}>
-                <span>{designTypes[storefrontDesign.designType]?.icon || '🎨'}</span>
-                <span>{designTypes[storefrontDesign.designType]?.name || storefrontDesign.designType}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="card p-4">
-            <h3 className="font-semibold text-gray-900 mb-3 text-center">Interior Design</h3>
-            <div className="relative h-48 bg-gray-100 rounded-lg overflow-hidden mb-3">
-              <img
-                src={`${interiorDesign.filePath}`}
-                alt="Selected interior design"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="text-center">
-              <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-gradient-to-r ${designTypes[interiorDesign.designType]?.color || 'from-gray-500 to-gray-600'} text-white text-sm font-medium`}>
-                <span>{designTypes[interiorDesign.designType]?.icon || '🎨'}</span>
-                <span>{designTypes[interiorDesign.designType]?.name || interiorDesign.designType}</span>
-              </div>
-            </div>
-          </div>
-        </div>
- 
       </div>
     )
   }
@@ -232,11 +230,12 @@ const FinalSubmissionPage = () => {
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Complete Your Contest Entry
+        <h1 className="text-xl font-bold text-gray-900 mb-4">
+          JK Lakshmi SKY - DIGITAL BRANDING CONTEST 
         </h1>
-        <p className="text-gray-600">
-          Review your selected designs and submit your entry to the JK Lakshmi Contest
+        <p className="text-l text-gray-600 mb-6">
+          अब सजाइए अपनी दुकान – इस दिवाली सप्ताह पर डिजिटल स्टाइल में! और पाएं इनाम!
+
         </p>
       </div>
 
@@ -246,22 +245,22 @@ const FinalSubmissionPage = () => {
       {/* User Info */}
       <div className="card p-6 bg-blue-50 border-blue-200">
         <h3 className="font-semibold text-blue-900 mb-3">
-          📋 Contest Entry Details
+          📋 Your Details
         </h3>
         <div className="grid md:grid-cols-3 gap-4 text-sm text-blue-800">
           <div>
-            <span className="font-medium">Dealership Name:</span>
-            <br />
+            <span className="font-medium">Dealership Name: </span>
+            
             {user.dealershipName}
           </div>
           <div>
-            <span className="font-medium">SAP Code:</span>
-            <br />
+            <span className="font-medium">SAP Code: </span>
+            
             {user.sapCode}
           </div>
           <div>
-            <span className="font-medium">Mobile Number:</span>
-            <br />
+            <span className="font-medium">Mobile Number: </span>
+            
             {user.mobileNumber}
           </div>
         </div>
@@ -276,18 +275,12 @@ const FinalSubmissionPage = () => {
           </h3>
           <div className="relative h-64 bg-gray-100 rounded-lg overflow-hidden mb-4">
             <img
-              src={`${storefrontDesign?.filePath}`}
+              src={getImageUrl(storefrontDesign?.filePath)}
               alt="Selected storefront design"
               className="w-full h-full object-cover"
             />
           </div>
-          <div className="text-center space-y-2">
-            <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-gradient-to-r ${designTypes[storefrontDesign?.designType]?.color || 'from-gray-500 to-gray-600'} text-white text-sm font-medium`}>
-              <span>{designTypes[storefrontDesign?.designType]?.icon || '🎨'}</span>
-              <span>{designTypes[storefrontDesign?.designType]?.name || storefrontDesign?.designType}</span>
-            </div>
-             
-          </div>
+           
         </div>
 
         {/* Interior Design */}
@@ -297,18 +290,12 @@ const FinalSubmissionPage = () => {
           </h3>
           <div className="relative h-64 bg-gray-100 rounded-lg overflow-hidden mb-4">
             <img
-              src={`${interiorDesign?.filePath}`}
+              src={getImageUrl(interiorDesign?.filePath)}
               alt="Selected interior design"
               className="w-full h-full object-cover"
             />
           </div>
-          <div className="text-center space-y-2">
-            <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-gradient-to-r ${designTypes[interiorDesign?.designType]?.color || 'from-gray-500 to-gray-600'} text-white text-sm font-medium`}>
-              <span>{designTypes[interiorDesign?.designType]?.icon || '🎨'}</span>
-              <span>{designTypes[interiorDesign?.designType]?.name || interiorDesign?.designType}</span>
-            </div>
-            
-          </div>
+           
         </div>
       </div>
 
@@ -329,11 +316,11 @@ const FinalSubmissionPage = () => {
             <button
               onClick={handleSubmitEntry}
               disabled={submitting}
-              className="flex items-center space-x-2 px-8 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all shadow-lg disabled:opacity-50"
+              className="btn-primary flex items-center space-x-2 px-8 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all shadow-lg disabled:opacity-50"
             >
               <Trophy className="w-5 h-5" />
               <span>
-                {submitting ? 'Submitting...' : 'Submit Contest Entry'}
+                {submitting ? 'Submitting...' : 'Final Submit'}
               </span>
             </button>
           </div>

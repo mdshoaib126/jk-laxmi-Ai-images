@@ -4,6 +4,63 @@ import crypto from 'crypto';
 
 const router = express.Router();
 
+// GET /api/contest/check-submission - Check if submission already exists
+router.get('/check-submission', async (req, res) => {
+  try {
+    const { userId, storefrontDesignId, interiorDesignId } = req.query;
+
+    if (!userId || !storefrontDesignId || !interiorDesignId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required parameters'
+      });
+    }
+
+    // Check if submission already exists
+    const existingSubmission = await executeQuery(`
+      SELECT 
+        cs.id,
+        cs.submission_id,
+        cs.submitted_at,
+        cs.dealership_name,
+        cs.sap_code,
+        cs.mobile_number
+      FROM contest_submissions cs
+      WHERE cs.user_id = ? 
+        AND cs.storefront_design_id = ? 
+        AND cs.interior_design_id = ?
+      ORDER BY cs.submitted_at DESC
+      LIMIT 1
+    `, [userId, storefrontDesignId, interiorDesignId]);
+
+    if (existingSubmission.length > 0) {
+      return res.json({
+        success: true,
+        data: {
+          submissionId: existingSubmission[0].submission_id,
+          submittedAt: existingSubmission[0].submitted_at,
+          dealershipName: existingSubmission[0].dealership_name,
+          sapCode: existingSubmission[0].sap_code,
+          mobileNumber: existingSubmission[0].mobile_number
+        }
+      });
+    } else {
+      return res.json({
+        success: true,
+        data: null // No existing submission found
+      });
+    }
+
+  } catch (error) {
+    console.error('Check submission error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Database error',
+      message: error.message
+    });
+  }
+});
+
 // POST /api/contest/submit - Submit contest entry with storefront and interior designs
 router.post('/submit', async (req, res) => {
   try {
