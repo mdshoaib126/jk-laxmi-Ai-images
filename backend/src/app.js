@@ -13,7 +13,6 @@ import generateRoutes from './routes/generateRoutes.js';
 import designRoutes from './routes/designRoutes.js';
 import shareRoutes from './routes/shareRoutes.js';
 import contestRoutes from './routes/contestRoutes.js';
-import contestRoutes from './routes/contestRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
