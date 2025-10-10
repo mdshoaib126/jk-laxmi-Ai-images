@@ -7,7 +7,7 @@ const router = express.Router();
 // POST /api/contest/submit - Submit contest entry with storefront and interior designs
 router.post('/submit', async (req, res) => {
   try {
-    const { 
+    let { 
       userId, 
       storefrontDesignId, 
       interiorDesignId, 
@@ -16,7 +16,22 @@ router.post('/submit', async (req, res) => {
       mobileNumber 
     } = req.body;
 
-    if (!userId || !storefrontDesignId || !interiorDesignId) {
+    console.log('Contest submission request:', {
+      userId,
+      storefrontDesignId,
+      interiorDesignId,
+      dealershipName,
+      sapCode,
+      mobileNumber
+    });
+
+    // Handle case where userId might be an array (similar to upload issue)
+    if (Array.isArray(userId)) {
+      userId = userId.find(id => id && id !== 'undefined' && id !== 'null') || userId[userId.length - 1];
+    }
+
+    if (!userId || userId === 'undefined' || userId === 'null' || !storefrontDesignId || !interiorDesignId) {
+      console.log('Missing required fields:', { userId, storefrontDesignId, interiorDesignId });
       return res.status(400).json({
         error: 'Missing required fields',
         message: 'User ID, storefront design ID, and interior design ID are required'
@@ -37,11 +52,24 @@ router.post('/submit', async (req, res) => {
         gd2.is_interior
       FROM generated_designs gd1
       CROSS JOIN generated_designs gd2
-      WHERE gd1.id = ? AND gd1.user_id = ? AND gd1.is_interior IS NULL
-        AND gd2.id = ? AND gd2.user_id = ? AND gd2.is_interior = true
+      WHERE gd1.id = ? AND gd1.user_id = ? AND (gd1.is_interior = false OR gd1.is_interior = 0)
+        AND gd2.id = ? AND gd2.user_id = ? AND (gd2.is_interior = true OR gd2.is_interior = 1)
     `, [storefrontDesignId, userId, interiorDesignId, userId]);
 
+    console.log('Design check query result:', designCheck);
+    console.log('Query parameters:', { storefrontDesignId, userId, interiorDesignId });
+
     if (designCheck.length === 0) {
+      // Let's also check what designs exist for this user
+      const userDesigns = await executeQuery(`
+        SELECT id, design_type, is_interior, user_id, created_at 
+        FROM generated_designs 
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+      `, [userId]);
+      
+      console.log('All user designs:', userDesigns);
+      
       return res.status(403).json({
         error: 'Invalid designs',
         message: 'One or both designs not found or do not belong to user'
