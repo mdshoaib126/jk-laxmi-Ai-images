@@ -83,12 +83,19 @@ router.post('/interior', upload.single('image'), handleMulterError, async (req, 
       });
     }
 
-    const { userId, storefrontDesignId, uploadType } = req.body;
+    let { userId, storefrontDesignId, uploadType } = req.body;
+    
+    // Handle case where userId might be an array (from multiple form appends)
+    if (Array.isArray(userId)) {
+      // Find the first valid (non-undefined, non-null) userId
+      userId = userId.find(id => id && id !== 'undefined' && id !== 'null') || userId[userId.length - 1];
+    }
     
     console.log('Interior upload data:', { userId, storefrontDesignId, uploadType });
+    console.log('Processed userId:', userId, typeof userId);
     
-    if (!userId || !storefrontDesignId) {
-      console.log('Error: Missing required fields');
+    if (!userId || userId === 'undefined' || userId === 'null' || !storefrontDesignId) {
+      console.log('Error: Missing required fields', { userId, storefrontDesignId });
       return res.status(400).json({
         error: 'Missing required fields',
         message: 'User ID and storefront design ID are required'

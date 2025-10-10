@@ -52,7 +52,9 @@ const ImageUploader = ({ onUpload, loading = false, userId }) => {
     // Create form data
     const formData = new FormData()
     formData.append('image', file)
-    formData.append('userId', userId)
+    if (userId) {
+      formData.append('userId', userId)
+    }
 
     try {
       await onUpload(formData)
@@ -144,7 +146,9 @@ const ImageUploader = ({ onUpload, loading = false, userId }) => {
 
     const formData = new FormData()
     formData.append('image', file)
-    formData.append('userId', userId)
+    if (userId) {
+      formData.append('userId', userId)
+    }
 
     try {
       await onUpload(formData)
