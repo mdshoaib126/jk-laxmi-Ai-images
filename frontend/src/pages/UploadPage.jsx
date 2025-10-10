@@ -22,18 +22,22 @@ const UploadPage = () => {
   const [showTermsModal, setShowTermsModal] = useState(false)
 
   const handleUpload = async (formData) => {
-    if (!user?.id) {
-      alert('User session not found. Please refresh the page.')
-      return
-    }
+    // Generate a temporary ID if user doesn't have one
+    const currentUserId = user?.id || `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
     try {
       setUploading(true)
 
-      // Add user info to form data if available
-      if (userInfo.dealershipName || userInfo.sapCode || userInfo.mobileNumber) {
-        formData.append('userInfo', JSON.stringify(userInfo))
+      // Always add user info to form data when uploading
+      const uploadUserInfo = {
+        dealershipName: userInfo.dealershipName || user?.dealershipName || '',
+        sapCode: userInfo.sapCode || user?.sapCode || '',
+        mobileNumber: userInfo.mobileNumber || user?.mobileNumber || ''
       }
+
+      // Add user ID and user info to form data
+      formData.append('userId', currentUserId)
+      formData.append('userInfo', JSON.stringify(uploadUserInfo))
 
       const response = await axios.post(`${API_BASE_URL}/api/upload`, formData, {
         headers: {

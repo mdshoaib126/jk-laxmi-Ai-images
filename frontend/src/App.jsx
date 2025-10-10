@@ -48,6 +48,7 @@ function App() {
         designs: []
       }
       
+      console.log('Creating new user:', newUser)
       setUser(newUser)
       localStorage.setItem('jk_ar_user', JSON.stringify(newUser))
     }
@@ -57,6 +58,7 @@ function App() {
 
   const updateUser = (updates) => {
     const updatedUser = { ...user, ...updates }
+    console.log('Updating user:', { current: user, updates, result: updatedUser })
     setUser(updatedUser)
     localStorage.setItem('jk_ar_user', JSON.stringify(updatedUser))
   }

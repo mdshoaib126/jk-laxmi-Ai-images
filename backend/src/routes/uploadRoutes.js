@@ -188,13 +188,7 @@ router.post('/', upload.single('image'), handleMulterError, async (req, res) => 
     
     console.log('Request data:', { userId, userInfo: userInfo ? 'Present' : 'Not present' });
     
-    if (!userId) {
-      console.log('Error: Missing userId in request body');
-      return res.status(400).json({
-        error: 'Missing user ID',
-        message: 'User ID is required'
-      });
-    }
+    // userId can be null, temporary, or a real database ID - we'll handle all cases
 
     // Validate the uploaded image
     const isValidImage = await validateImage(req.file.path);
@@ -205,42 +199,56 @@ router.post('/', upload.single('image'), handleMulterError, async (req, res) => 
       });
     }
 
-    // Create or update user if userInfo is provided
+    // Handle user creation/update logic
     let dbUserId = null;
+    
+    // First check if userId is a valid database ID (integer)
+    if (userId && !isNaN(userId) && !userId.toString().startsWith('temp_')) {
+      // Valid database user ID
+      dbUserId = parseInt(userId);
+      console.log('Using existing database user ID:', dbUserId);
+    }
+    
+    // Process user info if provided
     if (userInfo && userInfo !== 'undefined') {
       const parsedUserInfo = typeof userInfo === 'string' ? JSON.parse(userInfo) : userInfo;
       console.log('Processing user info:', parsedUserInfo);
       
-      // Check if user exists by sap_code (unique identifier)
-      const existingUser = await executeQuery(`
-        SELECT id FROM users WHERE sap_code = ? LIMIT 1
-      `, [parsedUserInfo.sapCode]);
-      
-      if (existingUser.length > 0) {
-        dbUserId = existingUser[0].id;
-        // Update existing user
-        await executeQuery(`
-          UPDATE users SET 
-          dealership_name = ?, 
-          mobile_number = ?, 
-          updated_at = CURRENT_TIMESTAMP
-          WHERE id = ?
-        `, [
-          parsedUserInfo.dealershipName || null,
-          parsedUserInfo.mobileNumber || null,
-          dbUserId
-        ]);
-      } else {
-        // Create new user
-        const result = await executeQuery(`
-          INSERT INTO users (dealership_name, sap_code, mobile_number) 
-          VALUES (?, ?, ?)
-        `, [
-          parsedUserInfo.dealershipName || null,
-          parsedUserInfo.sapCode || null,
-          parsedUserInfo.mobileNumber || null
-        ]);
-        dbUserId = result.insertId;
+      if (parsedUserInfo.sapCode) {
+        // Check if user exists by sap_code (unique identifier)
+        const existingUser = await executeQuery(`
+          SELECT id FROM users WHERE sap_code = ? LIMIT 1
+        `, [parsedUserInfo.sapCode]);
+        
+        if (existingUser.length > 0) {
+          dbUserId = existingUser[0].id;
+          console.log('Found existing user by SAP code:', dbUserId);
+          
+          // Update existing user
+          await executeQuery(`
+            UPDATE users SET 
+            dealership_name = ?, 
+            mobile_number = ?, 
+            updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+          `, [
+            parsedUserInfo.dealershipName || null,
+            parsedUserInfo.mobileNumber || null,
+            dbUserId
+          ]);
+        } else {
+          // Create new user
+          const result = await executeQuery(`
+            INSERT INTO users (dealership_name, sap_code, mobile_number) 
+            VALUES (?, ?, ?)
+          `, [
+            parsedUserInfo.dealershipName || null,
+            parsedUserInfo.sapCode || null,
+            parsedUserInfo.mobileNumber || null
+          ]);
+          dbUserId = result.insertId;
+          console.log('Created new user with ID:', dbUserId);
+        }
       }
     }
 

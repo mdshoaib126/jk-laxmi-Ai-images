@@ -44,7 +44,8 @@ const InteriorUploadPage = () => {
 
   const handleInteriorUpload = async (formData) => {
     if (!user?.id || !storefrontDesignId) {
-      alert('Session error. Please try again.')
+      alert('Session error. Please complete storefront selection first.')
+      navigate('/upload')
       return
     }
 
