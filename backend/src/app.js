@@ -12,6 +12,7 @@ import uploadRoutes from './routes/uploadRoutes.js';
 import generateRoutes from './routes/generateRoutes.js';
 import designRoutes from './routes/designRoutes.js';
 import shareRoutes from './routes/shareRoutes.js';
+import contestRoutes from './routes/contestRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,6 +47,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/generate', generateRoutes);
 app.use('/api/designs', designRoutes);
 app.use('/api/share', shareRoutes);
+app.use('/api/contest', contestRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

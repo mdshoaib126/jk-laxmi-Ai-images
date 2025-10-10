@@ -334,7 +334,9 @@ const DesignCarousel = ({
                   onClick={() => onSelectDesign(design)}
                 >
                   {/* Design Image */}
-                  <div className="relative h-64 bg-gray-100 overflow-hidden rounded-lg">
+                  <div className={`relative h-64 bg-gray-100 overflow-hidden rounded-lg border-4 transition-all ${
+                    isSelected ? 'border-green-500 shadow-lg' : 'border-transparent hover:border-gray-300'
+                  }`}>
                     {isLoading && (
                       <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
                         <div className="loading-spinner"></div>
@@ -350,6 +352,32 @@ const DesignCarousel = ({
                       onError={() => handleImageError(design.designId)}
                     />
                     
+                    {/* Selection Overlay */}
+                    <div className={`absolute inset-0 bg-green-500 bg-opacity-20 flex items-center justify-center transition-all ${
+                      isSelected ? 'opacity-100' : 'opacity-0'
+                    }`}>
+                      <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    </div>
+                    
+                    {/* Select Button */}
+                    {!isSelected && (
+                      <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 hover:opacity-100 flex items-center justify-center transition-all">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onSelectDesign(design)
+                          }}
+                          className="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-all"
+                        >
+                          Select This Design
+                        </button>
+                      </div>
+                    )}
+                    
                     {/* Download Icon */}
                     <button
                       onClick={(e) => {
@@ -361,10 +389,19 @@ const DesignCarousel = ({
                         link.click()
                         document.body.removeChild(link)
                       }}
-                      className="absolute top-3 right-3 w-8 h-8 bg-black bg-opacity-60 hover:bg-opacity-80 rounded-full flex items-center justify-center transition-all shadow-lg"
+                      className="absolute top-3 right-3 w-8 h-8 bg-black bg-opacity-60 hover:bg-opacity-80 rounded-full flex items-center justify-center transition-all shadow-lg z-10"
                     >
                       <Download className="w-4 h-4 text-white" />
                     </button>
+                  </div>
+                  
+                  {/* Design Type Badge */}
+                  <div className="mt-3 text-center">
+                    <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-gradient-to-r ${typeInfo.color} text-white text-sm font-medium`}>
+                      <span>{typeInfo.icon}</span>
+                      <span>{typeInfo.name}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">{typeInfo.description}</p>
                   </div>
                 </div>
               </SwiperSlide>

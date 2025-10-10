@@ -1,6 +1,6 @@
 import express from 'express';
 import { executeQuery } from '../config/db.js';
-import { generateFacadeDesigns } from '../services/geminiService.js';
+import { generateFacadeDesigns, generateInteriorDesigns } from '../services/geminiService.js';
 import { saveGeneratedImage } from '../services/imageUtils.js';
 
 const router = express.Router();
@@ -304,6 +304,156 @@ router.get('/status/:uploadId', async (req, res) => {
     res.status(500).json({
       error: 'Failed to get generation status',
       message: error.message
+    });
+  }
+});
+
+// POST /api/generate/interior - Generate interior designs using Gemini AI
+router.post('/interior', async (req, res) => {
+  try {
+    const { uploadId, userId, designTypes } = req.body;
+
+    if (!uploadId || !userId) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        message: 'Upload ID and User ID are required'
+      });
+    }
+
+    // Get the interior upload record
+    console.log('Looking for interior upload with ID:', uploadId, 'and user ID:', userId);
+    
+    const uploads = await executeQuery(`
+      SELECT u.*, gd.design_type as storefront_design_type, gd.file_path as storefront_file_path
+      FROM uploads u
+      JOIN generated_designs gd ON u.storefront_design_id = gd.id
+      WHERE u.id = ? AND u.user_id = ? AND u.upload_type = 'interior'
+    `, [uploadId, userId]);
+
+    console.log('Found interior uploads:', uploads.length);
+    if (uploads.length === 0) {
+      return res.status(404).json({
+        error: 'Interior upload not found',
+        message: 'The specified interior upload was not found'
+      });
+    }
+    
+    const upload = uploads[0];
+    console.log('Using interior upload with storefront design type:', upload.storefront_design_type);
+    
+    // Define design types if not provided - should match storefront style
+    const defaultTypes = [
+      'modern_premium',
+      'trust_heritage', 
+      'eco_smart',
+      'festive'
+    ];
+    const typesToGenerate = designTypes || defaultTypes;
+
+    // Map frontend design types to database enum values
+    const designTypeMap = {
+      'modern_premium': 'modern',
+      'trust_heritage': 'classical',
+      'eco_smart': 'industrial', 
+      'festive': 'eco_friendly'
+    };
+
+    const generatedDesigns = [];
+    
+    // Generate interior designs for each type
+    for (const designType of typesToGenerate) {
+      try {
+        console.log(`Generating interior ${designType} design for upload ${uploadId}`);
+        
+        // Map frontend design type to database enum
+        const dbDesignType = designTypeMap[designType] || designType;
+        
+        // Call Gemini API to generate interior design with different prompt
+        const generatedImageData = await generateInteriorDesigns(
+          upload.file_path,
+          designType,
+          upload.storefront_design_type
+        );
+
+        if (generatedImageData && generatedImageData.imageData) {
+          // Save the generated image
+          const generatedFilename = `interior_${designType}_${uploadId}_${Date.now()}.png`;
+          const savedImageResult = await saveGeneratedImage(
+            generatedImageData.imageData,
+            generatedFilename
+          );
+
+          // Save to database with interior flag
+          const result = await executeQuery(`
+            INSERT INTO generated_designs 
+            (upload_id, user_id, design_type, filename, file_path, file_size, width, height, ai_prompt, processing_status, is_interior, storefront_design_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `, [
+            uploadId,
+            upload.user_id,
+            dbDesignType,
+            generatedFilename,
+            savedImageResult.filePath,
+            savedImageResult.fileSize,
+            savedImageResult.width,
+            savedImageResult.height,
+            generatedImageData.prompt || '',
+            'completed',
+            true, // is_interior
+            upload.storefront_design_id
+          ]);
+          
+          const designId = result.insertId;
+          generatedDesigns.push({
+            designId,
+            designType,
+            filename: generatedFilename,
+            filePath: `/generated/${generatedFilename}`,
+            prompt: generatedImageData.prompt,
+            generatedAt: new Date().toISOString(),
+            isInterior: true,
+            storefrontDesignId: upload.storefront_design_id
+          });
+        }
+      } catch (designError) {
+        console.error(`Error generating interior ${designType} design:`, designError);
+        // Continue with other designs even if one fails
+      }
+    }
+
+    if (generatedDesigns.length === 0) {
+      return res.status(500).json({
+        error: 'Interior generation failed',
+        message: 'Failed to generate any interior designs. Please try again.'
+      });
+    }
+
+    // Get the storefront design info for response
+    const storefrontDesign = await executeQuery(`
+      SELECT * FROM generated_designs WHERE id = ?
+    `, [upload.storefront_design_id]);
+
+    res.json({
+      success: true,
+      message: `Successfully generated ${generatedDesigns.length} interior designs`,
+      data: {
+        uploadId,
+        userId: upload.user_id,
+        originalImage: `/uploads/${upload.filename}`,
+        storefrontDesign: storefrontDesign[0] ? {
+          designId: storefrontDesign[0].id,
+          designType: storefrontDesign[0].design_type,
+          filePath: `/generated/${storefrontDesign[0].filename}`
+        } : null,
+        generatedDesigns
+      }
+    });
+
+  } catch (error) {
+    console.error('Generate interior designs error:', error);
+    res.status(500).json({
+      error: 'Interior generation failed',
+      message: error.message || 'An error occurred while generating interior designs'
     });
   }
 });

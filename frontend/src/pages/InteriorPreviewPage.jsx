@@ -1,0 +1,312 @@
+import React, { useState, useEffect, useContext } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import axios from 'axios'
+import { RefreshCw, ArrowRight, ArrowLeft } from 'lucide-react'
+import { UserContext } from '../App'
+import DesignCarousel from '../components/DesignCarousel'
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://jk-lakshmi-api.expm.in'
+
+const InteriorPreviewPage = () => {
+  const { uploadId } = useParams()
+  const navigate = useNavigate()
+  const { user } = useContext(UserContext)
+  const [loading, setLoading] = useState(true)
+  const [generating, setGenerating] = useState(false)
+  const [interiorDesigns, setInteriorDesigns] = useState([])
+  const [selectedInteriorDesign, setSelectedInteriorDesign] = useState(null)
+  const [interiorImage, setInteriorImage] = useState(null)
+  const [storefrontDesign, setStorefrontDesign] = useState(null)
+  const [error, setError] = useState(null)
+  const [generationProgress, setGenerationProgress] = useState(0)
+
+  useEffect(() => {
+    if (!uploadId || !user?.id) {
+      navigate('/upload')
+      return
+    }
+
+    fetchInteriorDesigns()
+  }, [uploadId, user?.id])
+
+  const fetchInteriorDesigns = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Get interior designs for this upload
+      const response = await axios.get(
+        `${API_BASE_URL}/api/designs/interior/${user.id}?uploadId=${uploadId}`
+      )
+
+      if (response.data.success && response.data.data.length > 0) {
+        const uploadData = response.data.data[0]
+        setInteriorImage(uploadData.originalImage.filePath)
+        setInteriorDesigns(uploadData.designs)
+        setStorefrontDesign(uploadData.storefrontDesign)
+        
+        // Auto-select first design if none selected
+        if (uploadData.designs.length > 0 && !selectedInteriorDesign) {
+          setSelectedInteriorDesign(uploadData.designs.find(d => d.isSelected) || uploadData.designs[0])
+        }
+      } else {
+        // No designs exist, trigger generation
+        await generateInteriorDesigns()
+      }
+    } catch (error) {
+      console.error('Fetch interior designs error:', error)
+      setError('Failed to load interior designs. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const generateInteriorDesigns = async () => {
+    try {
+      setGenerating(true)
+      setGenerationProgress(0)
+      setError(null)
+
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setGenerationProgress(prev => Math.min(prev + 10, 90))
+      }, 500)
+
+      const response = await axios.post(`${API_BASE_URL}/api/generate/interior`, {
+        uploadId,
+        userId: user.id,
+        designTypes: ['modern_premium', 'trust_heritage', 'eco_smart', 'festive'] // Interior versions
+      })
+
+      clearInterval(progressInterval)
+      setGenerationProgress(100)
+
+      if (response.data.success) {
+        setInteriorDesigns(response.data.data.generatedDesigns)
+        setInteriorImage(response.data.data.originalImage)
+        setStorefrontDesign(response.data.data.storefrontDesign)
+        
+        // Auto-select first design
+        if (response.data.data.generatedDesigns.length > 0) {
+          setSelectedInteriorDesign(response.data.data.generatedDesigns[0])
+        }
+      } else {
+        throw new Error(response.data.message || 'Interior generation failed')
+      }
+    } catch (error) {
+      console.error('Interior generation error:', error)
+      setError(error.response?.data?.message || error.message || 'Failed to generate interior designs')
+    } finally {
+      setGenerating(false)
+      setGenerationProgress(0)
+    }
+  }
+
+  const handleSelectInteriorDesign = async (design) => {
+    try {
+      setSelectedInteriorDesign(design)
+      
+      // Update selection on backend
+      await axios.put(`${API_BASE_URL}/api/designs/interior/${design.designId}/select`, {
+        userId: user.id
+      })
+    } catch (error) {
+      console.error('Select interior design error:', error)
+      // Still update UI even if backend call fails
+    }
+  }
+
+  const handleRegenerateDesigns = async () => {
+    if (window.confirm('This will generate new interior designs. Continue?')) {
+      await generateInteriorDesigns()
+    }
+  }
+
+  const handleFinalSubmission = () => {
+    if (selectedInteriorDesign && storefrontDesign) {
+      navigate(`/final-submission/${storefrontDesign.designId}/${selectedInteriorDesign.designId}`)
+    }
+  }
+
+  const handleBack = () => {
+    navigate(-1) // Go back to interior upload
+  }
+
+  if (loading && !generating) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="card p-8 text-center">
+          <div className="loading-spinner mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Loading Your Interior Designs...
+          </h2>
+          <p className="text-gray-600">
+            Please wait while we fetch your interior designs
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error && !generating) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="card p-8 text-center">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Something Went Wrong
+          </h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <div className="space-x-4">
+            <button onClick={fetchInteriorDesigns} className="btn-primary">
+              Try Again
+            </button>
+            <button onClick={handleBack} className="btn-secondary">
+              Go Back
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-8">
+      {/* Header */}
+      <div className="text-center">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          Choose Your Interior Design
+        </h1>
+        <p className="text-gray-600">
+          Select your favorite interior design to complete your contest entry
+        </p>
+      </div>
+
+      {/* Navigation Breadcrumb */}
+      <div className="flex items-center space-x-2 text-sm text-gray-500">
+        <button onClick={() => navigate('/upload')} className="hover:text-gray-700">
+          Upload
+        </button>
+        <span>›</span>
+        <span className="text-gray-500">Select Storefront</span>
+        <span>›</span>
+        <button onClick={handleBack} className="hover:text-gray-700">
+          Interior Upload
+        </button>
+        <span>›</span>
+        <span className="text-gray-900 font-medium">Interior Design</span>
+        <span>›</span>
+        <span className="text-gray-400">Contest Entry</span>
+      </div>
+
+      {/* Selected Storefront Design Preview */}
+      {storefrontDesign && (
+        <div className="card p-4 bg-green-50 border-green-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
+                  <img
+                    src={`${API_BASE_URL}${storefrontDesign.filePath}`}
+                    alt="Selected storefront design"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center space-x-2 mb-1">
+                  <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  <span className="font-medium text-green-900 text-sm">Selected Storefront</span>
+                </div>
+                <p className="text-xs text-green-700">
+                  Your chosen exterior design - now select a matching interior
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Design Carousel */}
+      <DesignCarousel
+        designs={interiorDesigns}
+        selectedDesign={selectedInteriorDesign}
+        onSelectDesign={handleSelectInteriorDesign}
+        loading={generating}
+        originalImage={interiorImage}
+      />
+
+      {/* Action Buttons */}
+      {interiorDesigns.length > 0 && (
+        <div className="card p-6">
+          <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
+            <div className="text-center md:text-left">
+              <h3 className="font-semibold text-gray-900 mb-1">
+                Ready to Complete Your Contest Entry?
+              </h3>
+              <p className="text-sm text-gray-600">
+                Select your interior design and submit your complete entry
+              </p>
+            </div>
+            
+            <div className="flex flex-row space-x-4 justify-center">
+              <button
+                onClick={handleBack}
+                className="flex items-center space-x-2 px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition-all"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span>Back to Interior Upload</span>
+              </button>
+              
+              <button
+                onClick={handleRegenerateDesigns}
+                disabled={generating}
+                className="flex items-center space-x-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-all disabled:opacity-50"
+              >
+                <RefreshCw className={`w-5 h-5 ${generating ? 'animate-spin' : ''}`} />
+                <span>Generate New Designs</span>
+              </button>
+              
+              {selectedInteriorDesign && (
+                <button
+                  onClick={handleFinalSubmission}
+                  className="flex items-center space-x-2 px-8 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all shadow-lg"
+                >
+                  <span>Complete Contest Entry</span>
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tips for Interior Selection */}
+      <div className="card p-6 bg-purple-50 border-purple-200">
+        <h3 className="font-semibold text-purple-900 mb-3">🏪 Interior Design Tips</h3>
+        <div className="grid md:grid-cols-2 gap-4 text-sm text-purple-800">
+          <div>
+            <h4 className="font-medium mb-2">What to Look For:</h4>
+            <ul className="space-y-1">
+              <li>• Cohesive style with your storefront</li>
+              <li>• Functional layout and spacing</li>
+              <li>• Appealing color coordination</li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-medium mb-2">Contest Success:</h4>
+            <ul className="space-y-1">
+              <li>• Complete design package stands out</li>
+              <li>• Professional appearance matters</li>
+              <li>• Consistency creates impact</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default InteriorPreviewPage

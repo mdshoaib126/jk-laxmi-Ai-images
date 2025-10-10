@@ -310,4 +310,224 @@ router.get('/stats/:userId', async (req, res) => {
   }
 });
 
+// GET /api/designs/interior/:userId - Get user's interior designs
+router.get('/interior/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { uploadId } = req.query;
+
+    let query = `
+      SELECT 
+        gd.id as design_id,
+        gd.upload_id,
+        gd.design_type,
+        gd.filename,
+        gd.file_path,
+        gd.ai_prompt,
+        gd.created_at,
+        gd.processing_status,
+        gd.storefront_design_id,
+        u.original_name,
+        u.filename as original_filename_stored,
+        u.created_at as upload_created_at,
+        usr.dealership_name as user_dealership_name,
+        usr.sap_code as user_sap_code,
+        sgd.design_type as storefront_design_type,
+        sgd.filename as storefront_filename,
+        sgd.file_path as storefront_file_path
+      FROM generated_designs gd
+      LEFT JOIN uploads u ON gd.upload_id = u.id
+      LEFT JOIN users usr ON gd.user_id = usr.id
+      LEFT JOIN generated_designs sgd ON gd.storefront_design_id = sgd.id
+      WHERE gd.user_id = ? AND gd.is_interior = true
+    `;
+    
+    const params = [userId];
+
+    if (uploadId) {
+      query += ' AND gd.upload_id = ?';
+      params.push(uploadId);
+    }
+
+    query += ' ORDER BY gd.created_at DESC';
+
+    const designs = await executeQuery(query, params);
+
+    // Group designs by upload_id for better organization
+    const groupedDesigns = designs.reduce((acc, design) => {
+      const uploadId = design.upload_id;
+      if (!acc[uploadId]) {
+        acc[uploadId] = {
+          uploadId,
+          originalImage: {
+            filename: design.original_name,
+            filePath: `/uploads/${design.original_filename_stored}`,
+            uploadedAt: design.upload_created_at
+          },
+          storefrontDesign: {
+            designId: design.storefront_design_id,
+            designType: design.storefront_design_type,
+            filename: design.storefront_filename,
+            filePath: `/generated/${design.storefront_filename}`
+          },
+          userInfo: {
+            dealershipName: design.user_dealership_name,
+            sapCode: design.user_sap_code
+          },
+          designs: []
+        };
+      }
+      
+      acc[uploadId].designs.push({
+        designId: design.design_id,
+        designType: design.design_type,
+        filename: design.filename,
+        filePath: `/generated/${design.filename}`,
+        prompt: design.ai_prompt,
+        generatedAt: design.created_at,
+        isSelected: design.processing_status === 'completed',
+        isInterior: true,
+        storefrontDesignId: design.storefront_design_id
+      });
+      
+      return acc;
+    }, {});
+
+    res.json({
+      success: true,
+      data: Object.values(groupedDesigns)
+    });
+
+  } catch (error) {
+    console.error('Get interior designs error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch interior designs',
+      message: error.message
+    });
+  }
+});
+
+// PUT /api/designs/interior/:designId/select - Mark an interior design as selected
+router.put('/interior/:designId/select', async (req, res) => {
+  try {
+    const { designId } = req.params;
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        error: 'Missing user ID',
+        message: 'User ID is required'
+      });
+    }
+
+    // Verify ownership
+    const designs = await executeQuery(`
+      SELECT upload_id FROM generated_designs WHERE id = ? AND user_id = ? AND is_interior = true
+    `, [designId, userId]);
+
+    if (designs.length === 0) {
+      return res.status(404).json({
+        error: 'Interior design not found',
+        message: 'Interior design not found or you do not have permission to modify it'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Interior design selected successfully',
+      data: {
+        designId,
+        isSelected: true,
+        isInterior: true
+      }
+    });
+
+  } catch (error) {
+    console.error('Select interior design error:', error);
+    res.status(500).json({
+      error: 'Failed to select interior design',
+      message: error.message
+    });
+  }
+});
+
+// GET /api/designs/:designId - Get specific design by ID (for both storefront and interior)
+router.get('/:designId', async (req, res) => {
+  try {
+    const { designId } = req.params;
+
+    const designs = await executeQuery(`
+      SELECT 
+        gd.id as design_id,
+        gd.upload_id,
+        gd.user_id,
+        gd.design_type,
+        gd.filename,
+        gd.file_path,
+        gd.ai_prompt,
+        gd.created_at,
+        gd.processing_status,
+        gd.is_interior,
+        gd.storefront_design_id,
+        u.original_name,
+        u.filename as original_filename_stored,
+        u.file_size,
+        u.mime_type,
+        u.created_at as upload_created_at,
+        usr.dealership_name as user_dealership_name,
+        usr.sap_code as user_sap_code,
+        usr.mobile_number as user_mobile_number
+      FROM generated_designs gd
+      LEFT JOIN uploads u ON gd.upload_id = u.id
+      LEFT JOIN users usr ON gd.user_id = usr.id
+      WHERE gd.id = ?
+    `, [designId]);
+
+    if (designs.length === 0) {
+      return res.status(404).json({
+        error: 'Design not found',
+        message: 'The specified design was not found'
+      });
+    }
+
+    const design = designs[0];
+
+    res.json({
+      success: true,
+      data: {
+        designId: design.design_id,
+        uploadId: design.upload_id,
+        userId: design.user_id,
+        designType: design.design_type,
+        filename: design.filename,
+        filePath: `/generated/${design.filename}`,
+        prompt: design.ai_prompt,
+        generatedAt: design.created_at,
+        isSelected: design.processing_status === 'completed',
+        isInterior: design.is_interior || false,
+        storefrontDesignId: design.storefront_design_id,
+        originalImage: {
+          filename: design.original_name,
+          filePath: `/uploads/${design.original_filename_stored}`,
+          fileSize: design.file_size,
+          mimeType: design.mime_type,
+          uploadedAt: design.upload_created_at
+        },
+        userInfo: {
+          dealershipName: design.user_dealership_name,
+          sapCode: design.user_sap_code,
+          mobileNumber: design.user_mobile_number
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Get design error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch design',
+      message: error.message
+    });
+  }
+});
+
 export default router;

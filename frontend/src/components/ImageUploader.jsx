@@ -244,14 +244,24 @@ const ImageUploader = ({ onUpload, loading = false, userId }) => {
   }
 
   return (
-    <div className="card p-6">
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+    <div className="card p-4">
+      <div className="text-center mb-2">
+        <h2 className="text-xl font-bold text-gray-900 mb-2">
           Upload Your Shopfront Photo
         </h2>
         <p className="text-gray-600">
           Choose how you'd like to add your shop's current facade image
         </p>
+      </div>
+
+      <div className="mt-2 mb-4 p-1 bg-blue-50 rounded-lg">
+        <h4 className="font-medium text-blue-900 mb-2">📋 Photo Tips:</h4>
+        <ul className="text-sm text-blue-800 space-y-1">
+          <li>Capture the full front view of your shop</li>
+          <li>Ensure good lighting (avoid shadows)</li>
+          <li>Keep the camera steady and level</li>
+          <li>Include any existing signage or branding</li>
+        </ul>
       </div>
 
       {/* Upload Method Selection */}
@@ -338,15 +348,7 @@ const ImageUploader = ({ onUpload, loading = false, userId }) => {
         </div>
       )}
 
-      <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-        <h4 className="font-medium text-blue-900 mb-2">📋 Photo Tips:</h4>
-        <ul className="text-sm text-blue-800 space-y-1">
-          <li>Capture the full front view of your shop</li>
-          <li>Ensure good lighting (avoid shadows)</li>
-          <li>Keep the camera steady and level</li>
-          <li>Include any existing signage or branding</li>
-        </ul>
-      </div>
+      
     </div>
   )
 }

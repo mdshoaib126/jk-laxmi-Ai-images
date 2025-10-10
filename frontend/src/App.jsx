@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { Edit2 } from 'lucide-react'
 
 // Pages
 import UploadPage from './pages/UploadPage'
 import PreviewPage from './pages/PreviewPage'
 import SharePage from './pages/SharePage'
+import InteriorUploadPage from './pages/InteriorUploadPage'
+import InteriorPreviewPage from './pages/InteriorPreviewPage'
+import FinalSubmissionPage from './pages/FinalSubmissionPage'
 
 // Context for user data
 export const UserContext = React.createContext()
@@ -12,6 +16,7 @@ export const UserContext = React.createContext()
 function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [showEditForm, setShowEditForm] = useState(false)
 
   useEffect(() => {
     // Initialize user from localStorage or create new user
@@ -67,8 +72,12 @@ function App() {
     )
   }
 
+  const triggerEditForm = () => {
+    setShowEditForm(true)
+  }
+
   return (
-    <UserContext.Provider value={{ user, updateUser }}>
+    <UserContext.Provider value={{ user, updateUser, triggerEditForm, showEditForm, setShowEditForm }}>
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50">
         {/* Header */}
         <header className="bg-white  shadow-sm border-b-2 border-red-100">
@@ -92,6 +101,12 @@ function App() {
                   {user.sapCode && (
                     <span className="text-xs text-gray-500">({user.sapCode})</span>
                   )}
+                  <Edit2 
+                    onClick={triggerEditForm}
+                    className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer transition-colors"
+                    style={{ marginLeft: '15px' }}
+                    title="Edit Details"
+                  />
                 </div>
               )}
             </div>
@@ -104,6 +119,9 @@ function App() {
             <Route path="/" element={<Navigate to="/upload" replace />} />
             <Route path="/upload" element={<UploadPage />} />
             <Route path="/preview/:uploadId" element={<PreviewPage />} />
+            <Route path="/interior-upload/:storefrontDesignId" element={<InteriorUploadPage />} />
+            <Route path="/interior-preview/:uploadId" element={<InteriorPreviewPage />} />
+            <Route path="/final-submission/:storefrontDesignId/:interiorDesignId" element={<FinalSubmissionPage />} />
             <Route path="/share/:designId" element={<SharePage />} />
             <Route path="/contest/:shareId" element={<SharePage />} />
             <Route path="*" element={<Navigate to="/upload" replace />} />

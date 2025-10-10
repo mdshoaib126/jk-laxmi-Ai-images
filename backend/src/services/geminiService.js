@@ -252,6 +252,273 @@ async function generateImageWithGeminiNanoBanana(imagePath, designType) {
 
 
 
+// Interior design type prompts
+const INTERIOR_DESIGN_PROMPTS = {
+  modern_premium: `Transform this shop interior with a modern premium interior design while maintaining the JK Lakshmi Cement branding theme.
+    Design features:
+    - Sleek contemporary interior layout
+    - Professional lighting with clean lines
+    - Modern furniture and fixtures
+    - Minimalist product displays
+    - Premium materials (glass, steel, quality surfaces)
+    - Clean geometric arrangements
+    - Premium color palette (whites, grays, black accents)
+    - Organized product showcasing areas
+    - Professional customer service areas
+    Style: Contemporary, upscale, professional commercial interior`,
+
+  trust_heritage: `Transform this shop interior with a trust & heritage interior design while maintaining the JK Lakshmi Cement branding theme.
+    Design features:
+    - Classic traditional interior elements
+    - Warm lighting with golden tones
+    - Traditional materials and textures
+    - Heritage-inspired furniture and fixtures
+    - Warm earth tone color palette (browns, creams, warm whites)
+    - Traditional display cabinets and shelving
+    - Comfortable customer seating areas
+    - Classic architectural details
+    Style: Classic, trustworthy, established heritage commercial interior`,
+
+  eco_smart: `Transform this shop interior with an eco-smart interior design while maintaining the JK Lakshmi Cement branding theme.
+    Design features:
+    - Sustainable eco-friendly interior elements
+    - Natural lighting with green accents
+    - Eco-friendly materials and furniture
+    - Living plants and green wall elements
+    - Natural color palette (greens, earth tones, natural whites)
+    - Recycled and sustainable display fixtures
+    - Energy-efficient lighting systems
+    - Natural material textures (bamboo, reclaimed wood)
+    Style: Sustainable, modern eco-conscious commercial interior`,
+
+  festive: `Transform this shop interior with a festive interior design while maintaining the JK Lakshmi Cement branding theme.
+    Design features:
+    - Vibrant festive decorative elements
+    - Warm colorful lighting
+    - Traditional Indian festive decorations
+    - Bright and welcoming atmosphere
+    - Festive color palette (vibrant colors, golds, bright whites)
+    - Festive lighting and decorative patterns
+    - Celebratory product displays
+    - Traditional Indian interior accents
+    Style: Celebratory, vibrant, traditional Indian festive commercial interior`
+};
+
+/**
+ * Generate interior designs using Gemini AI
+ */
+export async function generateInteriorDesigns(imagePath, designType, storefrontDesignType) {
+  try {
+    console.log(`🏠 Starting interior design generation with Gemini...`);
+    console.log(`📁 Image path: ${imagePath}`);
+    console.log(`🎨 Interior design type: ${designType}`);
+    console.log(`🏪 Matching storefront type: ${storefrontDesignType}`);
+
+    if (!config.gemini.apiKey) {
+      throw new Error('❌ Gemini API key not configured');
+    }
+
+    if (!INTERIOR_DESIGN_PROMPTS[designType]) {
+      console.error(`❌ Invalid interior design type: ${designType}`);
+      throw new Error(`Invalid interior design type: ${designType}`);
+    }
+
+    console.log(`✅ Interior configuration valid, proceeding with generation...`);
+
+    // Try AI image generation first, fallback to enhanced image processing
+    let designImageData;
+    let apiUsed;
+    const analysisText = `Generated ${designType} interior design using AI image generation, matching ${storefrontDesignType} storefront style`;
+
+    try {
+      console.log(`🏠 Using Gemini for interior AI image generation...`);
+      designImageData = await generateInteriorImageWithGemini(imagePath, designType);
+      apiUsed = 'Gemini AI (Interior Design Generation)';
+      console.log(`✅ Interior AI image generation successful!`);
+    } catch (geminiImageError) {
+      console.log(`⚠️ Gemini interior generation not available, using enhanced image processing...`);
+      console.log(`📝 Gemini Interior Error: ${geminiImageError.message}`);
+
+      designImageData = await createMockInteriorDesignImage(imagePath, designType);
+      apiUsed = 'Enhanced Interior Processing (Fallback)';
+    }
+
+    console.log(`✅ Interior design generation completed successfully`);
+    console.log(`📊 Generated interior image size: ${Math.round(designImageData.length / 1024)} KB`);
+
+    return {
+      prompt: INTERIOR_DESIGN_PROMPTS[designType],
+      analysis: analysisText,
+      imageData: designImageData,
+      designType,
+      isInterior: true,
+      storefrontDesignType,
+      generatedAt: new Date().toISOString(),
+      apiUsed: apiUsed
+    };
+
+  } catch (error) {
+    console.error('❌ Interior design generation failed:', error.message);
+
+    if (error.response) {
+      console.error('🌐 API Response Error Status:', error.response.status);
+      console.error('🌐 API Response Error Message:', error.response.data?.error?.message || 'Unknown error');
+      throw new Error(`Gemini API error: ${error.response.data.error?.message || 'Unknown API error'}`);
+    }
+
+    if (error.code === 'ECONNABORTED') {
+      console.error('⏰ Request timeout occurred');
+      throw new Error('Gemini API request timeout');
+    }
+
+    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      console.error('🌐 Network connection error');
+      throw new Error('Unable to connect to Gemini API');
+    }
+
+    console.error('📋 Full error details:', error);
+    throw new Error(`Failed to generate interior design: ${error.message}`);
+  }
+}
+
+/**
+ * Generate interior design using Gemini AI
+ */
+async function generateInteriorImageWithGemini(imagePath, designType) {
+  try {
+    console.log(`🏠 Starting Gemini interior image generation...`);
+
+    if (!config.gemini.apiKey) {
+      throw new Error('Gemini API key not configured');
+    }
+
+    const interiorPrompt = INTERIOR_DESIGN_PROMPTS[designType];
+    console.log(`📝 Using interior prompt (${interiorPrompt.length} chars): ${interiorPrompt.substring(0, 200)}...`);
+
+    const imageBuffer = await fs.readFile(imagePath);
+    const base64Image = imageBuffer.toString('base64');
+    const mimeType = imagePath.toLowerCase().endsWith('.png') ? 'image/png'
+                    : imagePath.toLowerCase().endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+
+    const payload = {
+      contents: [
+        {
+          parts: [
+            { text: interiorPrompt },
+            { inline_data: { mime_type: mimeType, data: base64Image } }
+          ]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        topK: 32,
+        topP: 1,
+        maxOutputTokens: 4096
+      },
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" }
+      ]
+    };
+
+    console.log(`🌐 Calling Gemini for interior at: ${GEMINI_IMAGE_CONFIG.apiUrl}`);
+    console.log(`🖼️ Interior image size: ${Math.round(base64Image.length / 1024)} KB`);
+
+    const response = await axios.post(GEMINI_IMAGE_CONFIG.apiUrl, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': config.gemini.apiKey
+      },
+      timeout: GEMINI_IMAGE_CONFIG.timeout,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity
+    });
+
+    console.log(`✅ Gemini interior API response received`);
+    console.log(`📊 Response status: ${response.status}`);
+
+    // Try different possible locations for image data (same logic as facade generation)
+    let generatedImageBase64;
+    
+    generatedImageBase64 = response.data?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+    
+    if (!generatedImageBase64) {
+      generatedImageBase64 = response.data?.candidates?.[0]?.content?.parts?.find(p => p.inline_data)?.inline_data?.data;
+    }
+    
+    if (!generatedImageBase64) {
+      generatedImageBase64 = response.data?.image || response.data?.generated_image;
+    }
+    
+    if (!generatedImageBase64) {
+      const textResponse = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (textResponse) {
+        console.log('🔍 Received text response for interior instead of image data');
+        console.log('📝 Interior text response preview:', textResponse.substring(0, 200) + '...');
+        
+        throw new Error('Gemini returned text analysis instead of interior image data');
+      }
+      
+      console.error('❌ No interior image data found in response');
+      throw new Error('No interior image generated by Gemini');
+    }
+
+    console.log(`✅ Gemini interior image generated: ${Math.round(generatedImageBase64.length / 1024)} KB`);
+    return generatedImageBase64;
+
+  } catch (error) {
+    console.error('❌ Gemini interior generation failed:', error.message);
+    if (error.response) {
+      console.error('🌐 API Response Error Status:', error.response.status);
+      console.error('🌐 API Response Error Message:', error.response.data?.error?.message || 'Unknown error');
+    }
+    throw error;
+  }
+}
+
+/**
+ * Create enhanced interior design image for demonstration/fallback
+ */
+async function createMockInteriorDesignImage(originalImagePath, designType) {
+  try {
+    console.log(`🏠 Creating ${designType} interior transformation...`);
+    const sharp = (await import('sharp')).default;
+
+    const interiorConfigs = {
+      modern_premium: { brightness: 1.2, contrast: 1.25, saturation: 0.8, overlay: { r: 30, g: 70, b: 130, alpha: 0.12 } },
+      trust_heritage: { brightness: 0.9, contrast: 1.1, saturation: 1.2, overlay: { r: 130, g: 90, b: 50, alpha: 0.12 } },
+      eco_smart: { brightness: 1.1, contrast: 1.05, saturation: 1.3, overlay: { r: 40, g: 130, b: 70, alpha: 0.12 } },
+      festive: { brightness: 1.3, contrast: 1.3, saturation: 1.4, overlay: { r: 190, g: 130, b: 30, alpha: 0.15 } }
+    };
+
+    const config = interiorConfigs[designType] || interiorConfigs.modern_premium;
+
+    const processedImageBuffer = await sharp(originalImagePath)
+      .modulate({ brightness: config.brightness, saturation: config.saturation })
+      .linear(config.contrast)
+      .composite([{
+        input: Buffer.from([config.overlay.r, config.overlay.g, config.overlay.b, Math.floor(config.overlay.alpha * 255)]),
+        raw: { width: 1, height: 1, channels: 4 },
+        tile: true,
+        blend: 'overlay'
+      }])
+      .sharpen()
+      .jpeg({ quality: 90 })
+      .toBuffer();
+
+    console.log(`✅ Interior image transformation complete for ${designType}`);
+    return processedImageBuffer.toString('base64');
+
+  } catch (error) {
+    console.error('Mock interior image creation error:', error);
+    const originalBuffer = await fs.readFile(originalImagePath);
+    return originalBuffer.toString('base64');
+  }
+}
+
 /**
  * Create enhanced design image for demonstration/fallback
  */

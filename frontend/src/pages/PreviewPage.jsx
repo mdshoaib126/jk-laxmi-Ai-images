@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { RefreshCw, Share2 } from 'lucide-react'
+import { RefreshCw, ArrowRight } from 'lucide-react'
 import { UserContext } from '../App'
 import DesignCarousel from '../components/DesignCarousel'
 
@@ -18,6 +18,7 @@ const PreviewPage = () => {
   const [originalImage, setOriginalImage] = useState(null)
   const [error, setError] = useState(null)
   const [generationProgress, setGenerationProgress] = useState(0)
+  const [uploadStage, setUploadStage] = useState('storefront') // 'storefront', 'interior', 'completed'
 
   useEffect(() => {
     if (!uploadId || !user?.id) {
@@ -119,9 +120,10 @@ const PreviewPage = () => {
     }
   }
 
-  const handleShare = () => {
+  const handleNext = () => {
     if (selectedDesign) {
-      navigate(`/share/${selectedDesign.designId}`)
+      // Navigate to interior upload with selected storefront design
+      navigate(`/interior-upload/${selectedDesign.designId}`)
     }
   }
 
@@ -168,10 +170,10 @@ const PreviewPage = () => {
       {/* Header */}
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Your Facade Designs
+          Choose Your Storefront Design
         </h1>
         <p className="text-gray-600">
-          AI-generated designs powered by JK Lakshmi Cement
+          Select your favorite storefront design to continue with interior design
         </p>
       </div>
 
@@ -181,7 +183,11 @@ const PreviewPage = () => {
           Upload
         </button>
         <span>›</span>
-        <span className="text-gray-900 font-medium">Preview Designs</span>
+        <span className="text-gray-900 font-medium">Select Storefront</span>
+        <span>›</span>
+        <span className="text-gray-400">Interior Design</span>
+        <span>›</span>
+        <span className="text-gray-400">Contest Entry</span>
       </div>
 
       {/* Design Carousel */}
@@ -201,10 +207,10 @@ const PreviewPage = () => {
           <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
             <div className="text-center md:text-left">
               <h3 className="font-semibold text-gray-900 mb-1">
-                Ready for the Next Step?
+                Selected Your Favorite Storefront?
               </h3>
               <p className="text-sm text-gray-600">
-                Share your design with others and join the contest
+                Choose a design and proceed to interior design selection
               </p>
             </div>
             
@@ -215,16 +221,16 @@ const PreviewPage = () => {
                 className="flex items-center space-x-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-all disabled:opacity-50"
               >
                 <RefreshCw className={`w-5 h-5 ${generating ? 'animate-spin' : ''}`} />
-                <span>Generate New Design</span>
+                <span>Generate New Designs</span>
               </button>
               
               {selectedDesign && (
                 <button
-                  onClick={handleShare}
-                  className="flex items-center space-x-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-all"
+                  onClick={handleNext}
+                  className="flex items-center space-x-2 px-8 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-all shadow-lg"
                 >
-                  <Share2 className="w-5 h-5" />
-                  <span>Share Design</span>
+                  <span>Continue to Interior</span>
+                  <ArrowRight className="w-5 h-5" />
                 </button>
               )}
             </div>

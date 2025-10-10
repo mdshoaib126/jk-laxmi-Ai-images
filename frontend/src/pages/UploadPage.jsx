@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react'
+import React, { useState, useContext, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { UserContext } from '../App'
@@ -7,15 +7,19 @@ import ImageUploader from '../components/ImageUploader'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://jk-lakshmi-api.expm.in'
 
 const UploadPage = () => {
-  const { user, updateUser } = useContext(UserContext)
+  const { user, updateUser, showEditForm, setShowEditForm } = useContext(UserContext)
   const navigate = useNavigate()
   const [uploading, setUploading] = useState(false)
-  const [showUserForm, setShowUserForm] = useState(false)
+  // Check if user already has complete info to skip the form
+  const [formSubmitted, setFormSubmitted] = useState(
+    user?.dealershipName && user?.sapCode && user?.mobileNumber
+  )
   const [userInfo, setUserInfo] = useState({
     dealershipName: user?.dealershipName || '',
     sapCode: user?.sapCode || '',
     mobileNumber: user?.mobileNumber || ''
   })
+  const [showTermsModal, setShowTermsModal] = useState(false)
 
   const handleUpload = async (formData) => {
     if (!user?.id) {
@@ -69,8 +73,20 @@ const UploadPage = () => {
       return
     }
     
+    // Validate Mobile Number (10 digits)
+    if (userInfo.mobileNumber.length !== 10 || !/^\d{10}$/.test(userInfo.mobileNumber)) {
+      alert('Mobile Number must be exactly 10 digits')
+      return
+    }
+    
+    // Validate Dealership Name
+    if (!userInfo.dealershipName.trim()) {
+      alert('Dealership Name is required')
+      return
+    }
+    
     updateUser(userInfo)
-    setShowUserForm(false)
+    setFormSubmitted(true)
   }
 
   const handleUserInfoChange = (field, value) => {
@@ -80,20 +96,30 @@ const UploadPage = () => {
     }))
   }
 
+
+
+  // Listen for edit trigger from header
+  useEffect(() => {
+    if (showEditForm) {
+      setFormSubmitted(false)
+      setShowEditForm(false) // Reset the trigger
+    }
+  }, [showEditForm, setShowEditForm])
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Welcome Section */}
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Transform Your Shopfront with AI
+        <h1 className="text-xl font-bold text-gray-900 mb-4">
+          JK Lakshmi SKY - DIGITAL BRANDING CONTEST 
         </h1>
-        <p className="text-xl text-gray-600 mb-6">
-          Upload a photo of your shop and see how it could look with 
-          JK Lakshmi Cement's premium facade designs
+        <p className="text-l text-gray-600 mb-6">
+          अब सजाइए अपनी दुकान – इस दिवाली सप्ताह पर डिजिटल स्टाइल में! और पाएं इनाम!
+
         </p>
         
         {/* Features Grid */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
+        {/* <div className="grid md:grid-cols-2 gap-6 mb-8">
           <div className="card p-6 text-center">
             <div className="text-4xl mb-3">🤖</div>
             <h3 className="font-semibold text-gray-900 mb-2">AI-Powered Designs</h3>
@@ -108,37 +134,18 @@ const UploadPage = () => {
               Share your design and participate in rewards
             </p>
           </div>
-        </div>
+        </div> */}
       </div>
 
-      {/* User Info Section */}
-      {!user?.dealershipName && !showUserForm && (
-        <div className="card p-6 bg-blue-50 border-blue-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-blue-900 mb-1">
-                📝 Complete Your Profile
-              </h3>
-              <p className="text-sm text-blue-700">
-                Add your details to participate in the contest and get personalized designs
-              </p>
-            </div>
-            <button
-              onClick={() => setShowUserForm(true)}
-              className="btn-primary"
-            >
-              Add Details
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* User Form */}
-      {showUserForm && (
+      {/* User Form - Show directly if not submitted */}
+      {!formSubmitted && (
         <div className="card p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Your Information
+            📝 Enter Your Details to Participate
           </h3>
+          <p className="text-sm text-gray-600 mb-6">
+            Please fill in your information to proceed with the contest
+          </p>
           <form onSubmit={handleUserInfoSubmit} className="space-y-4">
             <div>
               <label className="form-label">
@@ -182,38 +189,54 @@ const UploadPage = () => {
                 <input
                   type="tel"
                   value={userInfo.mobileNumber}
-                  onChange={(e) => handleUserInfoChange('mobileNumber', e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 10)
+                    handleUserInfoChange('mobileNumber', value)
+                  }}
                   className="form-input"
-                  placeholder="+91 9876543210"
+                  placeholder="9876543210"
+                  pattern="\d{10}"
+                  maxLength="10"
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Must be exactly 10 digits
+                </p>
               </div>
             </div>
-            <div className="flex space-x-4">
-              <button type="submit" className="btn-primary">
-                Save Information
+            
+            <div className="flex justify-center">
+              <button type="submit" className="btn-primary px-8 py-3">
+                Submit & Continue to Upload
               </button>
+            </div>
+            
+            {/* Terms and Conditions Link */}
+            <div className="text-center text-sm text-gray-600">
+              By submitting, you agree to our{' '}
               <button
                 type="button"
-                onClick={() => setShowUserForm(false)}
-                className="btn-secondary"
+                onClick={() => setShowTermsModal(true)}
+                className="text-red-600 hover:text-red-800 underline font-medium"
               >
-                Skip for Now
+                Terms and Conditions
               </button>
             </div>
           </form>
         </div>
       )}
 
-      {/* Image Uploader */}
-      <ImageUploader
-        onUpload={handleUpload}
-        loading={uploading}
-        userId={user?.id}
-      />
+      {/* Image Uploader - Show only after form submission */}
+      {formSubmitted && (
+        <ImageUploader
+          onUpload={handleUpload}
+          loading={uploading}
+          userId={user?.id}
+        />
+      )}
 
-      {/* Recent Uploads */}
-      {user?.uploads && user.uploads.length > 0 && (
+      {/* Recent Uploads - Hide this section */}
+      {false && user?.uploads && user.uploads.length > 0 && (
         <div className="card p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Your Recent Uploads
@@ -245,7 +268,7 @@ const UploadPage = () => {
       )}
 
       {/* How It Works */}
-      <div className="card p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50 border-red-200">
+      {/* <div className="card p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50 border-red-200">
         <div className="text-center mb-6">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
             How It Works
@@ -304,17 +327,49 @@ const UploadPage = () => {
             <span className="font-bold text-red-600">JK Lakshmi Cement</span>
           </div>
         </div>
-      </div>
+      </div> */}
 
-      {/* Terms and Privacy */}
-      <div className="text-center text-sm text-gray-500">
-        <p>
-          By uploading your photo, you agree to our{' '}
-          <a href="#" className="text-red-600 hover:underline">Terms of Service</a>
-          {' '}and{' '}
-          <a href="#" className="text-red-600 hover:underline">Privacy Policy</a>
-        </p>
-      </div>
+      {/* Terms and Conditions Modal */}
+      {showTermsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-lg w-full max-h-96 overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Terms and Conditions
+                </h3>
+                <button
+                  onClick={() => setShowTermsModal(false)}
+                  className="text-gray-400 hover:text-gray-600 text-xl"
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="text-sm text-gray-700 space-y-3">
+                <p>
+                  <strong>1. Contest Participation:</strong> By submitting your details and photos, you agree to participate in the JK Lakshmi SKY Digital Branding Contest.
+                </p>
+                <p>
+                  <strong>2. Photo Usage:</strong> JK Lakshmi Cement reserves the right to use submitted photos and generated designs for promotional purposes.
+                </p>
+                <p>
+                  <strong>3. Accuracy of Information:</strong> All provided information must be accurate and truthful. False information may result in disqualification.
+                </p>
+                <p>
+                  <strong>4. Eligibility:</strong> Contest is open to authorized JK Lakshmi dealers and distributors with valid SAP codes.
+                </p>
+                <p>
+                  <strong>5. Privacy:</strong> Your personal information will be used solely for contest purposes and will not be shared with third parties.
+                </p>
+                <p>
+                  <strong>6. Prize Distribution:</strong> Winners will be contacted using the provided mobile number and dealership information.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

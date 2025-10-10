@@ -66,6 +66,107 @@ const handleMulterError = (error, req, res, next) => {
   });
 };
 
+// POST /api/upload/interior - Upload interior image
+router.post('/interior', upload.single('image'), handleMulterError, async (req, res) => {
+  try {
+    console.log('Interior upload request received:', {
+      file: req.file ? 'File present' : 'No file',
+      body: req.body,
+      headers: req.headers['content-type']
+    });
+
+    if (!req.file) {
+      console.log('Error: No file uploaded');
+      return res.status(400).json({
+        error: 'No file uploaded',
+        message: 'Please select an interior image file to upload'
+      });
+    }
+
+    const { userId, storefrontDesignId, uploadType } = req.body;
+    
+    console.log('Interior upload data:', { userId, storefrontDesignId, uploadType });
+    
+    if (!userId || !storefrontDesignId) {
+      console.log('Error: Missing required fields');
+      return res.status(400).json({
+        error: 'Missing required fields',
+        message: 'User ID and storefront design ID are required'
+      });
+    }
+
+    // Validate the uploaded image
+    const isValidImage = await validateImage(req.file.path);
+    if (!isValidImage) {
+      return res.status(400).json({
+        error: 'Invalid image',
+        message: 'The uploaded file is not a valid image'
+      });
+    }
+
+    // Verify the storefront design belongs to the user
+    const storefrontCheck = await executeQuery(`
+      SELECT gd.id, gd.user_id, u.id as upload_id
+      FROM generated_designs gd 
+      JOIN uploads u ON gd.upload_id = u.id
+      WHERE gd.id = ? AND gd.user_id = ?
+    `, [storefrontDesignId, userId]);
+
+    if (storefrontCheck.length === 0) {
+      return res.status(403).json({
+        error: 'Invalid storefront design',
+        message: 'Storefront design not found or does not belong to user'
+      });
+    }
+
+    // Save interior upload record to database with reference to storefront
+    console.log('Saving interior upload to database with user_id:', userId);
+    const uploadResult = await executeQuery(`
+      INSERT INTO uploads (user_id, original_name, filename, file_path, file_size, mime_type, upload_type, storefront_design_id)
+      VALUES (?, ?, ?, ?, ?, ?, 'interior', ?)
+    `, [
+      userId,
+      req.file.originalname,
+      req.file.filename,
+      req.file.path,
+      req.file.size,
+      req.file.mimetype,
+      storefrontDesignId
+    ]);
+
+    const uploadId = uploadResult.insertId;
+    console.log('Interior upload saved successfully with ID:', uploadId);
+
+    // Create thumbnail for faster loading
+    const thumbnailPath = await createThumbnail(req.file.path, req.file.filename);
+
+    res.json({
+      success: true,
+      message: 'Interior image uploaded successfully',
+      data: {
+        uploadId,
+        userId: userId,
+        storefrontDesignId: storefrontDesignId,
+        originalName: req.file.originalname,
+        filename: req.file.filename,
+        filePath: `/uploads/${req.file.filename}`,
+        thumbnailPath: thumbnailPath ? `/uploads/thumbnails/${path.basename(thumbnailPath)}` : null,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        uploadType: 'interior',
+        uploadedAt: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('Interior upload error:', error);
+    res.status(500).json({
+      error: 'Interior upload failed',
+      message: error.message || 'An error occurred while uploading the interior image'
+    });
+  }
+});
+
 // POST /api/upload - Upload shop facade image
 router.post('/', upload.single('image'), handleMulterError, async (req, res) => {
   try {

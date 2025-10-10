@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 
 -- =============================================
 -- Table: uploads
--- Description: Store original uploaded images
+-- Description: Store original uploaded images (both storefront and interior)
 -- =============================================
 CREATE TABLE IF NOT EXISTS `uploads` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -47,6 +47,8 @@ CREATE TABLE IF NOT EXISTS `uploads` (
   `mime_type` varchar(100) NOT NULL,
   `width` int(11) DEFAULT NULL,
   `height` int(11) DEFAULT NULL,
+  `upload_type` enum('storefront','interior') DEFAULT 'storefront',
+  `storefront_design_id` int(11) DEFAULT NULL,
   `building_type` varchar(100) DEFAULT NULL,
   `building_style` varchar(100) DEFAULT NULL,
   `location` varchar(255) DEFAULT NULL,
@@ -56,15 +58,18 @@ CREATE TABLE IF NOT EXISTS `uploads` (
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `fk_uploads_user` (`user_id`),
+  KEY `fk_uploads_storefront_design` (`storefront_design_id`),
   INDEX `idx_user_id` (`user_id`),
+  INDEX `idx_upload_type` (`upload_type`),
   INDEX `idx_created_at` (`created_at`),
   INDEX `idx_building_type` (`building_type`),
-  CONSTRAINT `fk_uploads_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+  CONSTRAINT `fk_uploads_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_uploads_storefront_design` FOREIGN KEY (`storefront_design_id`) REFERENCES `generated_designs` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================
 -- Table: generated_designs
--- Description: Store AI-generated facade designs
+-- Description: Store AI-generated facade and interior designs
 -- =============================================
 CREATE TABLE IF NOT EXISTS `generated_designs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -76,6 +81,8 @@ CREATE TABLE IF NOT EXISTS `generated_designs` (
   `file_size` bigint(20) NOT NULL,
   `width` int(11) DEFAULT NULL,
   `height` int(11) DEFAULT NULL,
+  `is_interior` boolean DEFAULT FALSE,
+  `storefront_design_id` int(11) DEFAULT NULL,
   `ai_prompt` text NOT NULL,
   `ai_response` json DEFAULT NULL,
   `generation_time` decimal(8,3) DEFAULT NULL,
@@ -91,12 +98,55 @@ CREATE TABLE IF NOT EXISTS `generated_designs` (
   PRIMARY KEY (`id`),
   KEY `fk_designs_upload` (`upload_id`),
   KEY `fk_designs_user` (`user_id`),
+  KEY `fk_designs_storefront` (`storefront_design_id`),
   INDEX `idx_design_type` (`design_type`),
+  INDEX `idx_is_interior` (`is_interior`),
   INDEX `idx_processing_status` (`processing_status`),
   INDEX `idx_created_at` (`created_at`),
   INDEX `idx_is_favorite` (`is_favorite`),
   CONSTRAINT `fk_designs_upload` FOREIGN KEY (`upload_id`) REFERENCES `uploads` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `fk_designs_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+  CONSTRAINT `fk_designs_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_designs_storefront` FOREIGN KEY (`storefront_design_id`) REFERENCES `generated_designs` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================
+-- Table: contest_submissions
+-- Description: Store contest submissions with storefront + interior design pairs
+-- =============================================
+CREATE TABLE IF NOT EXISTS `contest_submissions` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `storefront_design_id` int(11) NOT NULL,
+  `interior_design_id` int(11) NOT NULL,
+  `submission_id` varchar(50) UNIQUE NOT NULL,
+  `dealership_name` varchar(255) NOT NULL,
+  `sap_code` char(10) NOT NULL,
+  `mobile_number` varchar(20) NOT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `status` enum('submitted','under_review','qualified','winner','disqualified') DEFAULT 'submitted',
+  `score` decimal(5,2) DEFAULT NULL,
+  `judge_comments` text DEFAULT NULL,
+  `prize_category` varchar(100) DEFAULT NULL,
+  `prize_amount` decimal(10,2) DEFAULT NULL,
+  `submitted_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `reviewed_at` timestamp NULL DEFAULT NULL,
+  `metadata` json DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `fk_submissions_user` (`user_id`),
+  KEY `fk_submissions_storefront` (`storefront_design_id`),
+  KEY `fk_submissions_interior` (`interior_design_id`),
+  UNIQUE KEY `unique_submission_id` (`submission_id`),
+  UNIQUE KEY `unique_user_submission` (`user_id`),
+  INDEX `idx_sap_code` (`sap_code`),
+  INDEX `idx_status` (`status`),
+  INDEX `idx_submitted_at` (`submitted_at`),
+  INDEX `idx_prize_category` (`prize_category`),
+  CONSTRAINT `fk_submissions_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_submissions_storefront` FOREIGN KEY (`storefront_design_id`) REFERENCES `generated_designs` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_submissions_interior` FOREIGN KEY (`interior_design_id`) REFERENCES `generated_designs` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `chk_submission_sap_code_format` CHECK (CHAR_LENGTH(`sap_code`) = 10 AND `sap_code` REGEXP '^[0-9]{10}$')
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================
@@ -234,25 +284,37 @@ LEFT JOIN (
 WHERE gd.processing_status = 'completed'
 ORDER BY (gd.view_count + COALESCE(s.share_count, 0) * 5 + COALESCE(ar.session_count, 0) * 3) DESC;
 
--- View: Contest entries
+-- View: Contest entries (updated for multi-stage submissions)
 CREATE OR REPLACE VIEW `contest_entries` AS
 SELECT 
-    s.*,
-    gd.design_type,
-    gd.file_path as design_file_path,
-    gd.created_at as design_created_at,
-    u.filename as upload_filename,
-    u.file_path as original_file_path,
+    cs.id as submission_id,
+    cs.submission_id as contest_id,
+    cs.user_id,
+    cs.dealership_name,
+    cs.sap_code,
+    cs.mobile_number,
+    cs.status,
+    cs.score,
+    cs.prize_category,
+    cs.submitted_at,
+    gd1.design_type as storefront_type,
+    gd1.file_path as storefront_file_path,
+    gd1.filename as storefront_filename,
+    gd2.design_type as interior_type,
+    gd2.file_path as interior_file_path,
+    gd2.filename as interior_filename,
+    u1.file_path as storefront_original_path,
+    u2.file_path as interior_original_path,
     usr.dealership_name as user_dealership_name,
     usr.sap_code as user_sap_code,
     usr.mobile_number as user_mobile_number
-FROM `shares` s
-JOIN `generated_designs` gd ON s.design_id = gd.id
-JOIN `uploads` u ON gd.upload_id = u.id
-LEFT JOIN `users` usr ON s.user_id = usr.id
-WHERE s.share_type = 'contest'
-AND s.is_public = TRUE
-ORDER BY s.votes DESC, s.likes DESC, s.shared_at DESC;
+FROM `contest_submissions` cs
+JOIN `generated_designs` gd1 ON cs.storefront_design_id = gd1.id
+JOIN `generated_designs` gd2 ON cs.interior_design_id = gd2.id
+JOIN `uploads` u1 ON gd1.upload_id = u1.id
+JOIN `uploads` u2 ON gd2.upload_id = u2.id
+LEFT JOIN `users` usr ON cs.user_id = usr.id
+ORDER BY cs.score DESC, cs.submitted_at DESC;
 
 -- =============================================
 -- Create indexes for better performance
@@ -261,8 +323,13 @@ ORDER BY s.votes DESC, s.likes DESC, s.shared_at DESC;
 -- Additional indexes for complex queries
 CREATE INDEX `idx_designs_user_type` ON `generated_designs` (`user_id`, `design_type`);
 CREATE INDEX `idx_designs_status_created` ON `generated_designs` (`processing_status`, `created_at`);
+CREATE INDEX `idx_designs_interior_type` ON `generated_designs` (`is_interior`, `design_type`);
+CREATE INDEX `idx_designs_user_interior` ON `generated_designs` (`user_id`, `is_interior`);
 CREATE INDEX `idx_shares_public_featured` ON `shares` (`is_public`, `is_featured`);
 CREATE INDEX `idx_uploads_user_created` ON `uploads` (`user_id`, `created_at`);
+CREATE INDEX `idx_uploads_type_user` ON `uploads` (`upload_type`, `user_id`);
+CREATE INDEX `idx_submissions_status_date` ON `contest_submissions` (`status`, `submitted_at`);
+CREATE INDEX `idx_submissions_user_date` ON `contest_submissions` (`user_id`, `submitted_at`);
 
 -- =============================================
 -- Create triggers for data consistency
